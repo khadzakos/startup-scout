@@ -27,6 +27,8 @@ type LaunchRepository interface {
 	GetActive(ctx context.Context) (*entities.Launch, error)
 	GetAll(ctx context.Context) ([]*entities.Launch, error)
 	Update(ctx context.Context, launch *entities.Launch) error
+	Delete(ctx context.Context, id int64) error
+	GetProjectsByLaunchID(ctx context.Context, launchID int64) ([]*entities.Project, error)
 }
 
 type VoteRepository interface {

@@ -51,7 +51,6 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth) http.Handler {
 
 func userContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Извлекаем user_id из JWT токена и добавляем в контекст
 		_, claims, err := jwtauth.FromContext(r.Context())
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)

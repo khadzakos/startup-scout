@@ -11,7 +11,9 @@ import (
 
 	"startup-scout/config"
 	"startup-scout/internal/api"
+	"startup-scout/internal/infrastructure"
 	"startup-scout/internal/services"
+	"startup-scout/pkg/clients"
 
 	"github.com/go-chi/jwtauth/v5"
 	"go.uber.org/zap"
@@ -26,15 +28,21 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("Starting Startup Scout application")
+	logger.Info("Starting application")
 
 	jwtAuth := jwtauth.New("HS256", []byte(cfg.Auth.JWTSecret), nil)
 
-	// TODO: Инициализировать репозитории
-	// userRepo := postgres.NewUserRepository(db)
-	// projectRepo := postgres.NewProjectRepository(db)
-	// voteRepo := postgres.NewVoteRepository(db)
-	// launchRepo := postgres.NewLaunchRepository(db)
+	db, err := clients.NewPostgresClient(&cfg.Database, logger)
+	if err != nil {
+		logger.Fatal("Failed to connect to database", zap.Error(err))
+	}
+	defer db.Close()
+
+	// userRepo := infrastructure.NewUserRepository(db)
+	projectRepo := infrastructure.NewProjectRepository(db)
+	voteRepo := infrastructure.NewVoteRepository(db)
+	launchRepo := infrastructure.NewLaunchRepository(db)
+	// commentRepo := infrastructure.NewCommentRepository(db)
 
 	// Инициализируем сервисы
 	authService := services.NewAuthService(nil, services.AuthConfig{
@@ -45,7 +53,7 @@ func main() {
 		SessionDuration:    cfg.Auth.SessionDuration,
 	})
 
-	projectService := services.NewProjectService(nil, nil, nil)
+	projectService := services.NewProjectService(projectRepo, voteRepo, launchRepo)
 
 	handlers := api.NewHandlers(projectService, authService, logger, jwtAuth)
 
