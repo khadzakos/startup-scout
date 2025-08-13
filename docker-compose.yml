@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -24,6 +22,7 @@ services:
       - startup-scout-network
 
   postgres:
+    container_name: postgres
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=postgres
@@ -34,6 +33,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
+      - ./backend/testdata:/testdata
     networks:
       - startup-scout-network
 

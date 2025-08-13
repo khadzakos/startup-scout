@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,8 @@ import (
 func main() {
 	cfg := config.Load()
 
+	fmt.Println(cfg.Auth.TelegramBotToken)
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Failed to initialize logger:", err)
@@ -38,14 +41,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// userRepo := infrastructure.NewUserRepository(db)
+	userRepo := infrastructure.NewUserRepository(db)
 	projectRepo := infrastructure.NewProjectRepository(db)
 	voteRepo := infrastructure.NewVoteRepository(db)
 	launchRepo := infrastructure.NewLaunchRepository(db)
 	// commentRepo := infrastructure.NewCommentRepository(db)
 
 	// Инициализируем сервисы
-	authService := services.NewAuthService(nil, services.AuthConfig{
+	authService := services.NewAuthService(userRepo, services.AuthConfig{
 		TelegramBotToken:   cfg.Auth.TelegramBotToken,
 		YandexClientID:     cfg.Auth.YandexClientID,
 		YandexClientSecret: cfg.Auth.YandexClientSecret,

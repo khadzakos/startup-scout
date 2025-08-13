@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -45,65 +48,38 @@ type TelegramAuthData struct {
 	Hash      string `json:"hash"`
 }
 
-func (s *AuthService) AuthenticateTelegram(ctx context.Context, data map[string]string) (*entities.User, error) {
-	// Проверяем подпись от Telegram
-	if !s.verifyTelegramHash(data) {
-		return nil, fmt.Errorf("invalid telegram hash")
-	}
-
-	// Парсим данные
-	authData := &TelegramAuthData{}
-	if err := s.parseTelegramData(data, authData); err != nil {
-		return nil, err
-	}
-
-	// Проверяем, что данные не устарели (не старше 24 часов)
-	if time.Now().Unix()-authData.AuthDate > 86400 {
-		return nil, fmt.Errorf("auth data is too old")
-	}
-
-	// Ищем пользователя или создаем нового
-	user, err := s.userRepo.GetByAuthID(ctx, fmt.Sprintf("%d", authData.ID), entities.AuthTypeTelegram)
-	if err == nil && user != nil {
-		return user, nil
-	}
-
-	// Создаем нового пользователя
-	user = &entities.User{
-		Username:  authData.Username,
-		Avatar:    authData.PhotoURL,
-		AuthType:  entities.AuthTypeTelegram,
-		AuthID:    fmt.Sprintf("%d", authData.ID),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := s.userRepo.Create(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
+// Удаляем метод AuthenticateTelegram - теперь только связывание
 
 func (s *AuthService) verifyTelegramHash(data map[string]string) bool {
 	hash := data["hash"]
-	delete(data, "hash")
 
-	// Сортируем ключи
-	var keys []string
-	for k := range data {
-		keys = append(keys, k)
+	// Создаем копию данных без hash для проверки
+	checkData := make(map[string]string)
+	for k, v := range data {
+		if k != "hash" {
+			checkData[k] = v
+		}
 	}
 
-	// Создаем строку для проверки
+	// Сортируем ключи в алфавитном порядке
+	var keys []string
+	for k := range checkData {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Создаем строку для проверки согласно документации
 	var pairs []string
 	for _, k := range keys {
-		pairs = append(pairs, fmt.Sprintf("%s=%s", k, data[k]))
+		pairs = append(pairs, fmt.Sprintf("%s=%s", k, checkData[k]))
 	}
 	dataCheckString := strings.Join(pairs, "\n")
 
-	// Создаем HMAC
-	h := hmac.New(sha256.New, []byte(s.config.TelegramBotToken))
+	// Создаем секретный ключ как SHA256 хеш токена бота
+	secretKey := sha256.Sum256([]byte(s.config.TelegramBotToken))
+
+	// Создаем HMAC согласно документации
+	h := hmac.New(sha256.New, secretKey[:])
 	h.Write([]byte(dataCheckString))
 	expectedHash := hex.EncodeToString(h.Sum(nil))
 
@@ -175,6 +151,7 @@ func (s *AuthService) AuthenticateYandex(ctx context.Context, code string) (*ent
 		Avatar:    fmt.Sprintf("https://avatars.yandex.net/get-yapic/%s/islands-200", userInfo.AvatarID),
 		AuthType:  entities.AuthTypeYandex,
 		AuthID:    userInfo.ID,
+		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -184,6 +161,86 @@ func (s *AuthService) AuthenticateYandex(ctx context.Context, code string) (*ent
 	}
 
 	return user, nil
+}
+
+// Email авторизация
+func (s *AuthService) RegisterEmail(ctx context.Context, email, username, password string) (*entities.User, error) {
+	// Проверяем, что пользователь с таким email не существует
+	existingUser, err := s.userRepo.GetByEmail(ctx, email)
+	if err == nil && existingUser != nil {
+		return nil, fmt.Errorf("user with this email already exists")
+	}
+
+	// Хешируем пароль
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Создаем нового пользователя
+	user := &entities.User{
+		Email:        email,
+		Username:     username,
+		PasswordHash: string(passwordHash),
+		AuthType:     entities.AuthTypeEmail,
+		AuthID:       email, // Используем email как AuthID для email авторизации
+		IsActive:     true,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) AuthenticateEmail(ctx context.Context, email, password string) (*entities.User, error) {
+	// Получаем пользователя по email
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	// Проверяем пароль
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	return user, nil
+}
+
+// Связывание Telegram с существующим пользователем
+func (s *AuthService) LinkTelegramToUser(ctx context.Context, userID int64, telegramData map[string]string) error {
+	// Проверяем подпись от Telegram
+	if !s.verifyTelegramHash(telegramData) {
+		return fmt.Errorf("invalid telegram hash")
+	}
+
+	// Парсим данные
+	authData := &TelegramAuthData{}
+	if err := s.parseTelegramData(telegramData, authData); err != nil {
+		return err
+	}
+
+	// Проверяем, что данные не устарели (не старше 24 часов)
+	if time.Now().Unix()-authData.AuthDate > 86400 {
+		return fmt.Errorf("auth data is too old")
+	}
+
+	// Проверяем, что этот Telegram ID не привязан к другому пользователю
+	existingUser, err := s.userRepo.GetByTelegramID(ctx, authData.ID)
+	if err == nil && existingUser != nil && existingUser.ID != userID {
+		return fmt.Errorf("this telegram account is already linked to another user")
+	}
+
+	// Связываем Telegram с пользователем
+	if err := s.userRepo.LinkTelegram(ctx, userID, authData.ID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) getYandexAccessToken(code string) (*YandexAuthData, error) {

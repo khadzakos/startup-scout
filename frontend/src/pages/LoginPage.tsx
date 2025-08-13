@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { TelegramLoginRedirect } from '../components/TelegramLoginRedirect';
+import { EmailLogin } from '../components/EmailLogin';
+import { EmailRegister } from '../components/EmailRegister';
 import { ENV_CONFIG } from '../config/env';
 import { AuthType } from '../types';
 
 export const LoginPage: React.FC = () => {
-  const { user, login, loading, error } = useAuth();
+  const { user, loading, error } = useAuth();
   const [authLoading, setAuthLoading] = useState<AuthType | null>(null);
+  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -22,8 +24,9 @@ export const LoginPage: React.FC = () => {
       // Для Yandex получаем код из URL
       const code = searchParams.get('code');
       if (code) {
-        await login('yandex', { code });
-        navigate('/');
+        // Обработка Yandex callback
+        // TODO: Добавить обработку Yandex авторизации
+        console.log('Yandex code received:', code);
       } else {
         // Если кода нет, перенаправляем на Yandex OAuth
         const yandexAuthUrl = `https://oauth.yandex.ru/authorize?response_type=code&client_id=${ENV_CONFIG.YANDEX_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`;
@@ -69,10 +72,12 @@ export const LoginPage: React.FC = () => {
           )}
 
           <div className="space-y-4">
-            {/* Telegram Login */}
-            <div className="mb-6">
-              <TelegramLoginRedirect />
-            </div>
+            {/* Email Login/Register */}
+            {isLogin ? (
+              <EmailLogin onSwitchToRegister={() => setIsLogin(false)} />
+            ) : (
+              <EmailRegister onSwitchToLogin={() => setIsLogin(true)} />
+            )}
 
             {/* Разделитель */}
             <div className="relative">

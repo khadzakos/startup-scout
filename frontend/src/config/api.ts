@@ -13,8 +13,10 @@ export const API_ENDPOINTS = {
   PROJECT_VOTE: (id: number) => `/projects/${id}/vote`,
   
   // Auth
-  AUTH_TELEGRAM: '/auth/telegram',
+  AUTH_EMAIL_REGISTER: '/auth/email/register',
+  AUTH_EMAIL_LOGIN: '/auth/email/login',
   AUTH_YANDEX: '/auth/yandex',
+  AUTH_TELEGRAM_LINK: '/auth/telegram/link',
   
   // User
   PROFILE: '/profile',

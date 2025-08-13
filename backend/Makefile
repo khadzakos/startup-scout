@@ -24,6 +24,9 @@ help:
 	@echo "  db-info       - Show database configuration"
 	@echo "  dev-setup     - Setup development environment"
 	@echo "  dev-clean     - Clean development environment"
+	@echo "  fixtures-load - Load test fixtures"
+	@echo "  fixtures-clear - Clear test fixtures"
+	@echo "  test-data     - Load test data (migrate + fixtures)"
 	@echo ""
 	@echo "Environment variables:"
 	@echo "  DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_SSLMODE"
@@ -94,3 +97,19 @@ dev-clean: db-drop
 .PHONY: dev-reset
 dev-reset: db-drop db-create migrate-up
 	@echo "✓ Full development environment reset completed!"
+
+# Fixtures management
+.PHONY: fixtures-load
+fixtures-load:
+	@echo "Loading test fixtures..."
+	@chmod +x scripts/load_fixtures.sh
+	@./scripts/load_fixtures.sh $(DB_NAME)
+
+.PHONY: fixtures-clear
+fixtures-clear:
+	@echo "Clearing test fixtures..."
+	@PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -c "TRUNCATE TABLE votes, comments, projects, launches, users CASCADE;"
+
+.PHONY: test-data
+test-data: migrate-up fixtures-load
+	@echo "✓ Test data loaded successfully!"

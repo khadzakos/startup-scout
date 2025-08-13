@@ -131,55 +131,6 @@ func (h *Handlers) Vote(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
-// Auth handlers
-func (h *Handlers) AuthTelegram(w http.ResponseWriter, r *http.Request) {
-	var data map[string]string
-
-	// Проверяем метод запроса
-	if r.Method == "POST" {
-		// Для POST запросов (от Telegram Login Widget) читаем тело
-		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-			h.logger.Error("failed to decode telegram auth data", zap.Error(err))
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-	} else {
-		// Для GET запросов читаем параметры из URL (от OAuth)
-		data = make(map[string]string)
-		for key, values := range r.URL.Query() {
-			if len(values) > 0 {
-				data[key] = values[0]
-			}
-		}
-
-		// Логируем полученные данные для отладки
-		h.logger.Info("received telegram auth data", zap.Any("data", data))
-	}
-
-	user, err := h.authService.AuthenticateTelegram(r.Context(), data)
-	if err != nil {
-		h.logger.Error("failed to authenticate telegram", zap.Error(err))
-		http.Error(w, "Authentication failed", http.StatusUnauthorized)
-		return
-	}
-
-	// Создаем JWT токен
-	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
-	if err != nil {
-		h.logger.Error("failed to create JWT token", zap.Error(err))
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": tokenString,
-		"user":  user,
-	})
-}
-
 func (h *Handlers) AuthYandex(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -208,6 +159,98 @@ func (h *Handlers) AuthYandex(w http.ResponseWriter, r *http.Request) {
 		"token": tokenString,
 		"user":  user,
 	})
+}
+
+// Email регистрация
+func (h *Handlers) RegisterEmail(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Email    string `json:"email"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.authService.RegisterEmail(r.Context(), request.Email, request.Username, request.Password)
+	if err != nil {
+		h.logger.Error("failed to register user", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	})
+	if err != nil {
+		h.logger.Error("failed to create JWT token", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token": tokenString,
+		"user":  user,
+	})
+}
+
+// Email авторизация
+func (h *Handlers) AuthEmail(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.authService.AuthenticateEmail(r.Context(), request.Email, request.Password)
+	if err != nil {
+		h.logger.Error("failed to authenticate email", zap.Error(err))
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	})
+	if err != nil {
+		h.logger.Error("failed to create JWT token", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token": tokenString,
+		"user":  user,
+	})
+}
+
+// Связывание Telegram с пользователем
+func (h *Handlers) LinkTelegram(w http.ResponseWriter, r *http.Request) {
+	// Получаем пользователя из контекста (после аутентификации)
+	userID := r.Context().Value("user_id").(int64)
+
+	var data map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.logger.Error("failed to decode telegram link data", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.authService.LinkTelegramToUser(r.Context(), userID, data); err != nil {
+		h.logger.Error("failed to link telegram", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
 func (h *Handlers) GetProfile(w http.ResponseWriter, r *http.Request) {

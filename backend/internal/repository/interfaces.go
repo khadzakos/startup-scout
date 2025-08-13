@@ -9,7 +9,10 @@ type UserRepository interface {
 	Create(ctx context.Context, user *entities.User) error
 	GetByID(ctx context.Context, id int64) (*entities.User, error)
 	GetByAuthID(ctx context.Context, authID string, authType entities.AuthType) (*entities.User, error)
+	GetByEmail(ctx context.Context, email string) (*entities.User, error)
+	GetByTelegramID(ctx context.Context, telegramID int64) (*entities.User, error)
 	Update(ctx context.Context, user *entities.User) error
+	LinkTelegram(ctx context.Context, userID int64, telegramID int64) error
 }
 
 type ProjectRepository interface {

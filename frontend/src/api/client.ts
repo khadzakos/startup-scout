@@ -96,16 +96,29 @@ class ApiClient {
   }
 
   // Auth
-  async authTelegram(params: Record<string, string>): Promise<AuthResponse> {
-    // Для Telegram Login Widget отправляем POST запрос с данными в теле
-    return this.request<AuthResponse>(API_ENDPOINTS.AUTH_TELEGRAM, {
+  async registerEmail(email: string, username: string, password: string): Promise<AuthResponse> {
+    return this.request<AuthResponse>(API_ENDPOINTS.AUTH_EMAIL_REGISTER, {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify({ email, username, password }),
+    });
+  }
+
+  async loginEmail(email: string, password: string): Promise<AuthResponse> {
+    return this.request<AuthResponse>(API_ENDPOINTS.AUTH_EMAIL_LOGIN, {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
     });
   }
 
   async authYandex(code: string): Promise<AuthResponse> {
     return this.request<AuthResponse>(`${API_ENDPOINTS.AUTH_YANDEX}?code=${code}`);
+  }
+
+  async linkTelegram(params: Record<string, string>): Promise<{ status: string }> {
+    return this.request<{ status: string }>(API_ENDPOINTS.AUTH_TELEGRAM_LINK, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
   }
 
   // Profile

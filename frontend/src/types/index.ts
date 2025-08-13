@@ -60,7 +60,7 @@ export interface User {
   updated_at: string;
 }
 
-export type AuthType = 'telegram' | 'yandex';
+export type AuthType = 'email' | 'yandex';
 
 // Vote types
 export interface Vote {

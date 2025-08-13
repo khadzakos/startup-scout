@@ -1,9 +1,12 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -49,6 +52,12 @@ type LoggerConfig struct {
 }
 
 func Load() *Config {
+	if err := godotenv.Load(".env"); err != nil {
+		if err := godotenv.Load(); err != nil {
+			log.Printf("Warning: .env file not found or could not be loaded: %v", err)
+		}
+	}
+
 	return &Config{
 		Server: ServerConfig{
 			Port:         getEnv("SERVER_PORT", "8080"),

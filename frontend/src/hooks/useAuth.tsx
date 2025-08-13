@@ -5,6 +5,7 @@ import { User, AuthType } from '../types';
 interface AuthContextType {
   user: User | null;
   login: (provider: AuthType, params?: Record<string, string>) => Promise<void>;
+  register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -44,8 +45,8 @@ export const useAuthState = () => {
       setError(null);
       
       let response;
-      if (provider === 'telegram' && params) {
-        response = await apiClient.authTelegram(params);
+      if (provider === 'email' && params?.email && params?.password) {
+        response = await apiClient.loginEmail(params.email, params.password);
       } else if (provider === 'yandex' && params?.code) {
         response = await apiClient.authYandex(params.code);
       } else {
@@ -66,6 +67,27 @@ export const useAuthState = () => {
     }
   };
 
+  const register = async (email: string, username: string, password: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await apiClient.registerEmail(email, username, password);
+      
+      // Сохраняем токен и пользователя
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      apiClient.setToken(response.token);
+      setUser(response.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setError(null);
@@ -74,7 +96,7 @@ export const useAuthState = () => {
     apiClient.setToken(null);
   };
 
-  return { user, login, logout, loading, error };
+  return { user, login, register, logout, loading, error };
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

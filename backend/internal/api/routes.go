@@ -29,9 +29,11 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth) http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Get("/projects", handlers.GetProjects)
 		r.Get("/projects/{id}", handlers.GetProject)
-		r.Get("/auth/telegram", handlers.AuthTelegram)
-		r.Post("/auth/telegram", handlers.AuthTelegram)
+
+		// Auth routes
 		r.Get("/auth/yandex", handlers.AuthYandex)
+		r.Post("/auth/email/register", handlers.RegisterEmail)
+		r.Post("/auth/email/login", handlers.AuthEmail)
 	})
 
 	// Protected routes
@@ -44,6 +46,7 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth) http.Handler {
 		r.Post("/projects/{id}/vote", handlers.Vote)
 		r.Get("/profile", handlers.GetProfile)
 		r.Get("/votes", handlers.GetUserVotes)
+		r.Post("/auth/telegram/link", handlers.LinkTelegram)
 	})
 
 	return r
