@@ -49,7 +49,16 @@ func (s *ProjectService) GetActiveLaunchProjects(ctx context.Context) ([]*entiti
 		return nil, err
 	}
 
-	return s.projectRepo.GetByLaunchIDOrderedByRating(ctx, activeLaunch.ID)
+	projects, err := s.projectRepo.GetByLaunchIDOrderedByRating(ctx, activeLaunch.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if projects == nil {
+		return []*entities.Project{}, nil
+	}
+
+	return projects, nil
 }
 
 func (s *ProjectService) Vote(ctx context.Context, userID, projectID int64, voteType entities.VoteType) error {

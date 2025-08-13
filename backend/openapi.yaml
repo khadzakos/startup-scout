@@ -1,0 +1,633 @@
+openapi: 3.1.0
+info:
+  title: Startup Scout API
+  description: API для платформы Startup Scout - места для демонстрации и голосования за стартапы
+  version: 1.0.0
+  contact:
+    name: Startup Scout Team
+    email: support@startupscout.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.startupscout.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /projects:
+    get:
+      summary: Получить список проектов
+      description: Возвращает список всех проектов с возможностью фильтрации по launch_id
+      tags:
+        - Projects
+      parameters:
+        - name: launch_id
+          in: query
+          description: ID запуска для фильтрации проектов
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          description: Количество проектов для возврата
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Смещение для пагинации
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Список проектов успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      summary: Создать новый проект
+      description: Создает новый проект (требует аутентификации)
+      tags:
+        - Projects
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Проект успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{id}:
+    get:
+      summary: Получить проект по ID
+      description: Возвращает детальную информацию о проекте
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Проект успешно найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{id}/vote:
+    post:
+      summary: Голосовать за проект
+      description: Голосовать за проект (требует аутентификации)
+      tags:
+        - Voting
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteRequest'
+      responses:
+        '200':
+          description: Голос успешно засчитан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/telegram:
+    get:
+      summary: Аутентификация через Telegram (GET)
+      description: Перенаправляет на Telegram для аутентификации
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Перенаправление на Telegram
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      summary: Аутентификация через Telegram (POST)
+      description: Обрабатывает данные аутентификации от Telegram
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramAuthRequest'
+      responses:
+        '200':
+          description: Аутентификация успешна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/yandex:
+    get:
+      summary: Аутентификация через Yandex
+      description: Обрабатывает callback от Yandex OAuth
+      tags:
+        - Authentication
+      parameters:
+        - name: code
+          in: query
+          required: true
+          description: Код авторизации от Yandex
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Аутентификация успешна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /profile:
+    get:
+      summary: Получить профиль пользователя
+      description: Возвращает информацию о текущем пользователе (требует аутентификации)
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Профиль пользователя успешно получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /votes:
+    get:
+      summary: Получить голоса пользователя
+      description: Возвращает все голоса текущего пользователя (требует аутентификации)
+      tags:
+        - Voting
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: launch_id
+          in: query
+          description: ID запуска для фильтрации голосов
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Голоса пользователя успешно получены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  votes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vote'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен для аутентификации
+
+  schemas:
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор проекта
+        name:
+          type: string
+          description: Название проекта
+          maxLength: 255
+        description:
+          type: string
+          description: Краткое описание проекта
+        full_description:
+          type: string
+          description: Полное описание проекта
+        images:
+          type: array
+          items:
+            type: string
+          description: Массив URL изображений проекта
+        creators:
+          type: array
+          items:
+            type: string
+          description: Список создателей проекта
+        telegram_contact:
+          type: string
+          description: Telegram контакт
+          maxLength: 255
+        website:
+          type: string
+          description: Веб-сайт проекта
+          maxLength: 255
+        upvotes:
+          type: integer
+          description: Количество голосов "за"
+          minimum: 0
+        downvotes:
+          type: integer
+          description: Количество голосов "против"
+          minimum: 0
+        rating:
+          type: integer
+          description: Рейтинг проекта (upvotes - downvotes)
+        launch_id:
+          type: integer
+          format: int64
+          description: ID запуска
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления
+      required:
+        - id
+        - name
+        - description
+        - launch_id
+        - created_at
+        - updated_at
+
+    Launch:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор запуска
+        name:
+          type: string
+          description: Название запуска
+          maxLength: 255
+        start_date:
+          type: string
+          format: date-time
+          description: Дата начала запуска
+        end_date:
+          type: string
+          format: date-time
+          description: Дата окончания запуска
+        is_active:
+          type: boolean
+          description: Активен ли запуск
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления
+      required:
+        - id
+        - name
+        - start_date
+        - end_date
+        - is_active
+        - created_at
+        - updated_at
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор пользователя
+        username:
+          type: string
+          description: Имя пользователя
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+        avatar:
+          type: string
+          description: URL аватара пользователя
+        auth_type:
+          type: string
+          enum: [telegram, yandex]
+          description: Тип аутентификации
+        auth_id:
+          type: string
+          description: ID пользователя в системе аутентификации
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления
+      required:
+        - id
+        - username
+        - auth_type
+        - auth_id
+        - created_at
+        - updated_at
+
+    Vote:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор голоса
+        user_id:
+          type: integer
+          format: int64
+          description: ID пользователя
+        project_id:
+          type: integer
+          format: int64
+          description: ID проекта
+        launch_id:
+          type: integer
+          format: int64
+          description: ID запуска
+        vote_type:
+          type: string
+          enum: [up, down]
+          description: Тип голоса
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+      required:
+        - id
+        - user_id
+        - project_id
+        - launch_id
+        - vote_type
+        - created_at
+
+    CreateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название проекта
+          maxLength: 255
+        description:
+          type: string
+          description: Краткое описание проекта
+        full_description:
+          type: string
+          description: Полное описание проекта
+        images:
+          type: array
+          items:
+            type: string
+          description: Массив URL изображений проекта
+        creators:
+          type: array
+          items:
+            type: string
+          description: Список создателей проекта
+        telegram_contact:
+          type: string
+          description: Telegram контакт
+          maxLength: 255
+        website:
+          type: string
+          description: Веб-сайт проекта
+          maxLength: 255
+        launch_id:
+          type: integer
+          format: int64
+          description: ID запуска
+      required:
+        - name
+        - description
+        - launch_id
+
+    VoteRequest:
+      type: object
+      properties:
+        vote_type:
+          type: string
+          enum: [up, down]
+          description: Тип голоса
+        launch_id:
+          type: integer
+          format: int64
+          description: ID запуска
+      required:
+        - vote_type
+        - launch_id
+
+    VoteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате голосования
+        project:
+          $ref: '#/components/schemas/Project'
+      required:
+        - message
+
+    TelegramAuthRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID пользователя в Telegram
+        first_name:
+          type: string
+          description: Имя пользователя
+        last_name:
+          type: string
+          description: Фамилия пользователя
+        username:
+          type: string
+          description: Username в Telegram
+        photo_url:
+          type: string
+          description: URL фотографии пользователя
+        auth_date:
+          type: integer
+          description: Дата аутентификации
+        hash:
+          type: string
+          description: Хеш для проверки подлинности
+      required:
+        - id
+        - first_name
+        - auth_date
+        - hash
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT токен для аутентификации
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - token
+        - user
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Сообщение об ошибке
+        code:
+          type: string
+          description: Код ошибки
+      required:
+        - error
+
+  responses:
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid request data"
+            code: "BAD_REQUEST"
+
+    Unauthorized:
+      description: Не авторизован
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"
+
+tags:
+  - name: Projects
+    description: Операции с проектами
+  - name: Authentication
+    description: Аутентификация пользователей
+  - name: Voting
+    description: Голосование за проекты
+  - name: User
+    description: Операции с пользователями

@@ -43,6 +43,10 @@ func (h *Handlers) GetProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if projects == nil {
+		projects = []*entities.Project{}
+	}
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"projects": projects,
 	})

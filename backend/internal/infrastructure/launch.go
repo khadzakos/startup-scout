@@ -50,11 +50,14 @@ func (r *Launch) GetByID(ctx context.Context, id int64) (*entities.Launch, error
 
 func (r *Launch) GetActive(ctx context.Context) (*entities.Launch, error) {
 	query := `
-		SELECT * FROM launches WHERE end_date > NOW()
+		SELECT * FROM launches WHERE is_active = true AND end_date > NOW()
 	`
 	var launch entities.Launch
 	err := r.db.GetDB().GetContext(ctx, &launch, query)
 	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("no active launch found")
+		}
 		return nil, fmt.Errorf("failed to get active launch: %w", err)
 	}
 
