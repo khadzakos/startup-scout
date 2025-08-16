@@ -6,7 +6,8 @@ import {
   VoteResponse, 
   AuthResponse, 
   ProfileResponse, 
-  VotesResponse
+  VotesResponse,
+  Comment
 } from '../types';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 
@@ -124,6 +125,31 @@ class ApiClient {
   // Profile
   async getProfile(): Promise<ProfileResponse> {
     return this.request<ProfileResponse>(API_ENDPOINTS.PROFILE);
+  }
+
+  // Comments
+  async getProjectComments(projectId: number): Promise<{ comments: Comment[] }> {
+    return this.request<{ comments: Comment[] }>(API_ENDPOINTS.PROJECT_COMMENTS(projectId));
+  }
+
+  async createComment(projectId: number, content: string): Promise<Comment> {
+    return this.request<Comment>(API_ENDPOINTS.PROJECT_COMMENTS(projectId), {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async updateComment(commentId: number, content: string): Promise<{ status: string }> {
+    return this.request<{ status: string }>(API_ENDPOINTS.COMMENT(commentId), {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async deleteComment(commentId: number): Promise<{ status: string }> {
+    return this.request<{ status: string }>(API_ENDPOINTS.COMMENT(commentId), {
+      method: 'DELETE',
+    });
   }
 }
 

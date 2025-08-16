@@ -45,7 +45,7 @@ func main() {
 	projectRepo := infrastructure.NewProjectRepository(db)
 	voteRepo := infrastructure.NewVoteRepository(db)
 	launchRepo := infrastructure.NewLaunchRepository(db)
-	// commentRepo := infrastructure.NewCommentRepository(db)
+	commentRepo := infrastructure.NewCommentRepository(db)
 
 	// Инициализируем сервисы
 	authService := services.NewAuthService(userRepo, services.AuthConfig{
@@ -57,10 +57,11 @@ func main() {
 	})
 
 	projectService := services.NewProjectService(projectRepo, voteRepo, launchRepo)
+	commentService := services.NewCommentService(commentRepo)
 
-	handlers := api.NewHandlers(projectService, authService, logger, jwtAuth)
+	handlers := api.NewHandlers(projectService, authService, commentService, logger, jwtAuth)
 
-	router := api.SetupRoutes(handlers, jwtAuth)
+	router := api.SetupRoutes(handlers, jwtAuth, userRepo)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Server.Port,

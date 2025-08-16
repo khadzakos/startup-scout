@@ -12,6 +12,10 @@ export const API_ENDPOINTS = {
   PROJECT: (id: number) => `/projects/${id}`,
   PROJECT_VOTE: (id: number) => `/projects/${id}/vote`,
   
+  // Comments
+  PROJECT_COMMENTS: (id: number) => `/projects/${id}/comments`,
+  COMMENT: (id: number) => `/comments/${id}`,
+  
   // Auth
   AUTH_EMAIL_REGISTER: '/auth/email/register',
   AUTH_EMAIL_LOGIN: '/auth/email/login',

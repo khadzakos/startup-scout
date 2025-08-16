@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ChevronUp, 
@@ -6,16 +6,16 @@ import {
   ExternalLink, 
   MessageCircle,
   ArrowLeft,
-  Calendar,
-  Send
+  Calendar
 } from 'lucide-react';
 import { useProject } from '../hooks/useProjects';
 import { useAuth } from '../hooks/useAuth';
 import { useVoting } from '../hooks/useVoting';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Comment, VoteType } from '../types';
+import { VoteType } from '../types';
 import { Loader2 } from 'lucide-react';
+import { Comments } from '../components/Comments';
 
 export const ProjectPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,8 +23,6 @@ export const ProjectPage: React.FC = () => {
   const { project, loading, error, fetchProject } = useProject(projectId);
   const { user } = useAuth();
   const { vote, loading: votingLoading } = useVoting();
-  const [comment, setComment] = useState('');
-  const [comments, setComments] = useState<Comment[]>([]);
 
   if (loading) {
     return (
@@ -57,23 +55,6 @@ export const ProjectPage: React.FC = () => {
     if (success) {
       fetchProject(); // Обновляем данные проекта после голосования
     }
-  };
-
-  const handleSubmitComment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !comment.trim()) return;
-
-    const newComment: Comment = {
-      id: Date.now(),
-      project_id: project.id,
-      user_id: user.id,
-      content: comment.trim(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    setComments(prev => [newComment, ...prev]);
-    setComment('');
   };
 
   return (
@@ -216,56 +197,7 @@ export const ProjectPage: React.FC = () => {
           )}
 
           {/* Comments */}
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Комментарии</h3>
-            
-            {user ? (
-              <form onSubmit={handleSubmitComment} className="mb-6">
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Написать комментарий..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!comment.trim()}
-                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <p className="text-gray-600 mb-6">Войдите, чтобы оставить комментарий</p>
-            )}
-
-            <div className="space-y-4">
-              {comments.map((comment) => (
-                <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="w-8 h-8 bg-secondary-500 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">
-                        {comment.user_id}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {format(new Date(comment.created_at), 'd MMM yyyy, HH:mm', { locale: ru })}
-                    </span>
-                  </div>
-                  <p className="text-gray-700">{comment.content}</p>
-                </div>
-              ))}
-              
-              {comments.length === 0 && (
-                <p className="text-gray-500 text-center py-8">
-                  Пока нет комментариев. Будьте первым!
-                </p>
-              )}
-            </div>
-          </div>
+          <Comments projectId={project.id} />
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ import (
 type Handlers struct {
 	projectService *services.ProjectService
 	authService    *services.AuthService
+	commentService *services.CommentService
 	logger         *zap.Logger
 	jwtAuth        *jwtauth.JWTAuth
 }
@@ -23,12 +24,14 @@ type Handlers struct {
 func NewHandlers(
 	projectService *services.ProjectService,
 	authService *services.AuthService,
+	commentService *services.CommentService,
 	logger *zap.Logger,
 	jwtAuth *jwtauth.JWTAuth,
 ) *Handlers {
 	return &Handlers{
 		projectService: projectService,
 		authService:    authService,
+		commentService: commentService,
 		logger:         logger,
 		jwtAuth:        jwtAuth,
 	}
@@ -277,4 +280,114 @@ func (h *Handlers) GetUserVotes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"votes": votes,
 	})
+}
+
+// Comment handlers
+func (h *Handlers) GetProjectComments(w http.ResponseWriter, r *http.Request) {
+	projectIDStr := chi.URLParam(r, "id")
+	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	comments, err := h.commentService.GetProjectComments(r.Context(), projectID)
+	if err != nil {
+		h.logger.Error("failed to get project comments", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if comments == nil {
+		comments = []*entities.Comment{}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"comments": comments,
+	})
+}
+
+func (h *Handlers) CreateComment(w http.ResponseWriter, r *http.Request) {
+	projectIDStr := chi.URLParam(r, "id")
+	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Content == "" {
+		http.Error(w, "Comment content is required", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(int64)
+
+	comment, err := h.commentService.CreateComment(r.Context(), userID, projectID, request.Content)
+	if err != nil {
+		h.logger.Error("failed to create comment", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(comment)
+}
+
+func (h *Handlers) UpdateComment(w http.ResponseWriter, r *http.Request) {
+	commentIDStr := chi.URLParam(r, "commentId")
+	commentID, err := strconv.ParseInt(commentIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Content == "" {
+		http.Error(w, "Comment content is required", http.StatusBadRequest)
+		return
+	}
+
+	userID := r.Context().Value("user_id").(int64)
+
+	if err := h.commentService.UpdateComment(r.Context(), commentID, userID, request.Content); err != nil {
+		h.logger.Error("failed to update comment", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func (h *Handlers) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	commentIDStr := chi.URLParam(r, "commentId")
+	commentID, err := strconv.ParseInt(commentIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.commentService.DeleteComment(r.Context(), commentID); err != nil {
+		h.logger.Error("failed to delete comment", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }

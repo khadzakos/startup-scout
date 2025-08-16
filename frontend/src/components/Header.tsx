@@ -32,16 +32,28 @@ export const Header: React.FC = () => {
                 Главная
               </Link>
               {user && (
-                <Link
-                  to="/profile"
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive('/profile') 
-                      ? 'text-primary-600 bg-primary-50' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  Профиль
-                </Link>
+                <>
+                  <Link
+                    to="/publish"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive('/publish') 
+                        ? 'text-primary-600 bg-primary-50' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Опубликовать
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive('/profile') 
+                        ? 'text-primary-600 bg-primary-50' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    Профиль
+                  </Link>
+                </>
               )}
             </nav>
           </div>
