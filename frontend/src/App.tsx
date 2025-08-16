@@ -7,6 +7,7 @@ import { ProjectPage } from './pages/ProjectPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PublishPage } from './pages/PublishPage';
+import { AboutPage } from './pages/AboutPage';
 
 function App() {
   return (
@@ -16,11 +17,12 @@ function App() {
           <Header />
           <main>
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/project/:id" element={<ProjectPage />} />
-              <Route path="/publish" element={<PublishPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/project/:id" element={<ProjectPage />} />
+                  <Route path="/publish" element={<PublishPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
             </Routes>
           </main>
         </div>

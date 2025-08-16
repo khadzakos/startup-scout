@@ -159,7 +159,7 @@ export const ProjectPage: React.FC = () => {
                   href={project.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Веб-сайт</span>

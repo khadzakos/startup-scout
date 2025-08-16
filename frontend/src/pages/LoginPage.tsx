@@ -51,7 +51,7 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary-500 rounded-lg flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-xl">SS</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">

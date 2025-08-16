@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Trophy, ThumbsUp, Rocket, Loader2 } from 'lucide-react';
+import { ThumbsUp, Rocket, MessageCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../api/client';
 import { Vote, ProfileResponse } from '../types';
@@ -80,36 +80,31 @@ export const ProfilePage: React.FC = () => {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{user.username}</h1>
             <p className="text-gray-600 mb-4">{user.email}</p>
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-1 text-xs font-medium bg-primary-100 text-primary-800 rounded-full">
-                {user.auth_type === 'telegram' ? 'Telegram' : 'Яндекс'}
-              </span>
-            </div>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
           <div className="text-center">
-            <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mx-auto mb-2">
-              <ThumbsUp className="w-5 h-5 text-green-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-accent-100 rounded-lg mx-auto mb-2">
+              <Rocket className="w-5 h-5 text-accent-600" />
             </div>
             <div className="text-2xl font-bold text-gray-900">{totalVotes}</div>
-            <div className="text-sm text-gray-600">Всего голосов</div>
+            <div className="text-sm text-gray-600">Запусков</div>
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg mx-auto mb-2">
-              <Rocket className="w-5 h-5 text-primary-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mx-auto mb-2">
+              <ThumbsUp className="w-5 h-5 text-green-600" />
             </div>
             <div className="text-2xl font-bold text-gray-900">{upvotes}</div>
             <div className="text-sm text-gray-600">Положительных</div>
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center w-10 h-10 bg-secondary-100 rounded-lg mx-auto mb-2">
-              <Trophy className="w-5 h-5 text-secondary-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mx-auto mb-2">
+              <MessageCircle className="w-5 h-5 text-purple-600" />
             </div>
             <div className="text-2xl font-bold text-gray-900">{downvotes}</div>
-            <div className="text-sm text-gray-600">Отрицательных</div>
+            <div className="text-sm text-gray-600">Отзывов</div>
           </div>
         </div>
       </div>
