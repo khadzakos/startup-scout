@@ -241,7 +241,7 @@ export const PublishPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={addCreator}
-                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 transition-colors p-2 rounded-xl hover:bg-primary-50"
+                  className="flex items-center space-x-2 text-accent-600 hover:text-accent-700 transition-colors p-2 rounded-xl hover:bg-accent-50"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Добавить создателя</span>
@@ -280,7 +280,7 @@ export const PublishPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={addImage}
-                  className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 transition-colors p-2 rounded-xl hover:bg-primary-50"
+                  className="flex items-center space-x-2 text-accent-600 hover:text-accent-700 transition-colors p-2 rounded-xl hover:bg-accent-50"
                 >
                   <Upload className="w-5 h-5" />
                   <span>Добавить изображение</span>

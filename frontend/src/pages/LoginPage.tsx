@@ -99,7 +99,7 @@ export const LoginPage: React.FC = () => {
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <span className="w-5 h-5 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                  Я
+                  Y
                 </span>
               )}
               <span>Войти через Яндекс</span>

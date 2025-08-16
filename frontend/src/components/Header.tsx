@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-3 text-primary-600 hover:text-primary-700 transition-colors">
               <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-xl font-bold text-white">S</span>
+                <span className="text-xl font-bold text-white">SS</span>
               </div>
               <span className="text-2xl font-bold text-secondary-900">
                 Startup Scout
