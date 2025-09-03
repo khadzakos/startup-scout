@@ -28,10 +28,12 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 			creators, 
 			telegram_contact, 
 			website, 
+			launch_id,
+			user_id,
 			created_at, 
 			updated_at
 		)
-		VALUES (:name, :description, :full_description, :images, :creators, :telegram_contact, :website, :created_at, :updated_at)
+		VALUES (:name, :description, :full_description, :images, :creators, :telegram_contact, :website, :launch_id, :user_id, :created_at, :updated_at)
 	`
 	_, err := r.db.GetDB().NamedExecContext(ctx, query, project)
 	if err != nil {

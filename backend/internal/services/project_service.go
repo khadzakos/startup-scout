@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"time"
@@ -28,10 +29,16 @@ func NewProjectService(
 }
 
 func (s *ProjectService) CreateProject(ctx context.Context, project *entities.Project) error {
+	activeLaunch, err := s.launchRepo.GetActive(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get active launch: %w", err)
+	}
+
 	project.CreatedAt = time.Now()
 	project.UpdatedAt = time.Now()
 	project.Upvotes = 0
 	project.Rating = 0
+	project.LaunchID = activeLaunch.ID
 
 	return s.projectRepo.Create(ctx, project)
 }
