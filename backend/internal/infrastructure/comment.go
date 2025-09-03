@@ -6,6 +6,8 @@ import (
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"startup-scout/pkg/clients"
+
+	"github.com/google/uuid"
 )
 
 type Comment struct {
@@ -38,9 +40,22 @@ func (r *Comment) Create(
 	return nil
 }
 
+func (r *Comment) GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error) {
+	query := `
+		SELECT * FROM comments WHERE id = $1
+	`
+	var comment entities.Comment
+	err := r.db.GetDB().GetContext(ctx, &comment, query, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comment by id: %w", err)
+	}
+
+	return &comment, nil
+}
+
 func (r *Comment) GetByProjectID(
 	ctx context.Context,
-	projectID int64,
+	projectID uuid.UUID,
 ) ([]*entities.Comment, error) {
 	query := `
 		SELECT * FROM comments WHERE project_id = $1
@@ -72,7 +87,7 @@ func (r *Comment) Update(
 
 func (r *Comment) Delete(
 	ctx context.Context,
-	id int64,
+	id uuid.UUID,
 ) error {
 	query := `
 		DELETE FROM comments WHERE id = $1

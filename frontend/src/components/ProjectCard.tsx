@@ -1,26 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronUp, ChevronDown, ExternalLink, MessageCircle } from 'lucide-react';
-import { Project, VoteType } from '../types';
-import { useAuth } from '../hooks/useAuth';
-import { useVoting } from '../hooks/useVoting';
+import { ExternalLink, MessageCircle } from 'lucide-react';
+import { Project } from '../types';
+import { VotingButtons } from './VotingButtons';
 
 interface ProjectCardProps {
   project: Project;
   rank: number;
-  onVoteSuccess?: () => void;
+  onVoteSuccess?: (projectId: string, upvotes: number) => void;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, rank, onVoteSuccess }) => {
-  const { user } = useAuth();
-  const { vote, loading: votingLoading } = useVoting();
-
-  const handleVote = async (type: VoteType) => {
-    if (!user) return;
-    
-    const success = await vote(project.id, type);
-    if (success && onVoteSuccess) {
-      onVoteSuccess();
+  const handleVoteSuccess = () => {
+    if (onVoteSuccess) {
+      onVoteSuccess(project.id, project.upvotes);
     }
   };
 
@@ -104,37 +97,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, rank, onVoteS
 
             {/* Voting Section */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-gradient-to-r from-secondary-50 to-primary-50 rounded-xl p-2 border border-secondary-200 shadow-sm">
-                <button
-                  onClick={() => handleVote('up')}
-                  disabled={!user || votingLoading}
-                  className={`p-3 rounded-lg transition-all duration-200 ${
-                    user && !votingLoading
-                      ? 'hover:bg-success-100 hover:text-success-600 text-secondary-600 hover:scale-110' 
-                      : 'text-secondary-400 cursor-not-allowed'
-                  }`}
-                  title={user ? 'Проголосовать за' : 'Войдите, чтобы голосовать'}
-                >
-                  <ChevronUp className="w-5 h-5" />
-                </button>
-                
-                <span className="px-4 text-lg font-bold text-secondary-900 min-w-[3rem] text-center">
-                  {project.rating}
-                </span>
-                
-                <button
-                  onClick={() => handleVote('down')}
-                  disabled={!user || votingLoading}
-                  className={`p-3 rounded-lg transition-all duration-200 ${
-                    user && !votingLoading
-                      ? 'hover:bg-error-100 hover:text-error-600 text-secondary-600 hover:scale-110' 
-                      : 'text-secondary-400 cursor-not-allowed'
-                  }`}
-                  title={user ? 'Проголосовать против' : 'Войдите, чтобы голосовать'}
-                >
-                  <ChevronDown className="w-5 h-5" />
-                </button>
-              </div>
+              <VotingButtons
+                projectId={project.id}
+                upvotes={project.upvotes}
+                onVoteSuccess={handleVoteSuccess}
+              />
               
               <Link 
                 to={`/project/${project.id}`}
@@ -143,14 +110,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, rank, onVoteS
               >
                 <MessageCircle className="w-5 h-5" />
               </Link>
-            </div>
-          </div>
-
-          {/* Stats Row */}
-          <div className="flex items-center justify-between text-sm text-secondary-500">
-            <div className="flex items-center space-x-4">
-              <span>👍 {project.upvotes} голосов за</span>
-              <span>👎 {project.downvotes} голосов против</span>
             </div>
           </div>
         </div>

@@ -7,20 +7,20 @@ export interface ApiResponse<T> {
 
 // Project types
 export interface Project {
-  id: number;
-  name: string;
-  description: string;
-  full_description: string;
-  images: string[];
-  creators: string[];
-  telegram_contact: string;
-  website: string;
-  upvotes: number;
-  downvotes: number;
-  rating: number;
-  launch_id: number;
-  created_at: string;
-  updated_at: string;
+	id: string; // UUID
+	name: string;
+	description: string;
+	full_description: string;
+	images: string[];
+	creators: string[];
+	telegram_contact: string;
+	website: string;
+	upvotes: number;
+	rating: number;
+	launch_id: string; // UUID
+	user_id: string; // UUID
+	created_at: string;
+	updated_at: string;
 }
 
 export interface ProjectCreateRequest {
@@ -34,82 +34,80 @@ export interface ProjectCreateRequest {
 }
 
 export interface ProjectsResponse {
-  projects: Project[];
+	projects: Project[];
 }
 
 // Launch types
 export interface Launch {
-  id: number;
-  name: string;
-  start_date: string;
-  end_date: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+	id: string; // UUID
+	name: string;
+	start_date: string;
+	end_date: string;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
 }
 
 // User types
 export interface User {
-  id: number;
-  username: string;
-  email: string;
-  avatar: string;
-  auth_type: AuthType;
-  auth_id: string;
-  created_at: string;
-  updated_at: string;
+	id: string; // UUID
+	username: string;
+	email: string;
+	avatar: string;
+	auth_type: string;
+	created_at: string;
+	updated_at: string;
 }
 
 export type AuthType = 'email' | 'yandex';
 
-// Vote types
+// Vote types (только лайки)
 export interface Vote {
-  id: number;
-  user_id: number;
-  project_id: number;
-  launch_id: number;
-  vote_type: VoteType;
-  created_at: string;
-}
-
-export type VoteType = 'up' | 'down';
-
-export interface VoteRequest {
-  vote_type: VoteType;
+	id: string; // UUID
+	user_id: string; // UUID
+	project_id: string; // UUID
+	launch_id: string; // UUID
+	created_at: string;
 }
 
 export interface VoteResponse {
-  status: string;
+	success: boolean;
+	message?: string;
 }
 
 // Comment types
 export interface Comment {
-  id: number;
-  user_id: number;
-  project_id: number;
-  content: string;
-  created_at: string;
-  updated_at: string;
+	id: string; // UUID
+	project_id: string; // UUID
+	user_id: string; // UUID
+	content: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CommentsResponse {
+	comments: Comment[];
 }
 
 // Auth types
 export interface AuthResponse {
-  token: string;
-  user: User;
+	success: boolean;
+	message?: string;
+	token?: string;
+	user?: User;
 }
 
 export interface ProfileResponse {
-  user_id: number;
-  message: string;
+	user: User;
 }
 
 export interface VotesResponse {
-  votes: Vote[];
+	votes: Vote[];
 }
 
 // Frontend specific types (for UI)
 export interface ProjectWithUserVote extends Project {
-  userVote?: VoteType;
+	userVote?: boolean; // Changed from VoteType
 }
 
 export interface Creator {

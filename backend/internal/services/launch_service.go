@@ -4,6 +4,8 @@ import (
 	"context"
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
+
+	"github.com/google/uuid"
 )
 
 type LaunchService struct {
@@ -24,7 +26,7 @@ func (s *LaunchService) Create(ctx context.Context, launch *entities.Launch) err
 	return s.launchRepo.Create(ctx, launch)
 }
 
-func (s *LaunchService) GetByID(ctx context.Context, id int64) (*entities.Launch, error) {
+func (s *LaunchService) GetByID(ctx context.Context, id uuid.UUID) (*entities.Launch, error) {
 	return s.launchRepo.GetByID(ctx, id)
 }
 
@@ -36,6 +38,6 @@ func (s *LaunchService) Update(ctx context.Context, launch *entities.Launch) err
 	return s.launchRepo.Update(ctx, launch)
 }
 
-func (s *LaunchService) Delete(ctx context.Context, id int64) error {
+func (s *LaunchService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.launchRepo.Delete(ctx, id)
 }

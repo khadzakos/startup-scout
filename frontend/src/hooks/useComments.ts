@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Comment } from '../types';
 import { apiClient } from '../api/client';
 
-export const useComments = (projectId: number) => {
+export const useComments = (projectId: string) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export const useComments = (projectId: number) => {
     }
   };
 
-  const updateComment = async (commentId: number, content: string) => {
+  const updateComment = async (commentId: string, content: string) => {
     try {
       await apiClient.updateComment(commentId, content);
       setComments(prev => 
@@ -47,7 +47,7 @@ export const useComments = (projectId: number) => {
     }
   };
 
-  const deleteComment = async (commentId: number) => {
+  const deleteComment = async (commentId: string) => {
     try {
       await apiClient.deleteComment(commentId);
       setComments(prev => prev.filter(comment => comment.id !== commentId));

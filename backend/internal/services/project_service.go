@@ -5,6 +5,8 @@ import (
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ProjectService struct {
@@ -29,17 +31,16 @@ func (s *ProjectService) CreateProject(ctx context.Context, project *entities.Pr
 	project.CreatedAt = time.Now()
 	project.UpdatedAt = time.Now()
 	project.Upvotes = 0
-	project.Downvotes = 0
 	project.Rating = 0
 
 	return s.projectRepo.Create(ctx, project)
 }
 
-func (s *ProjectService) GetProject(ctx context.Context, id int64) (*entities.Project, error) {
+func (s *ProjectService) GetProject(ctx context.Context, id uuid.UUID) (*entities.Project, error) {
 	return s.projectRepo.GetByID(ctx, id)
 }
 
-func (s *ProjectService) GetProjectsByLaunch(ctx context.Context, launchID int64) ([]*entities.Project, error) {
+func (s *ProjectService) GetProjectsByLaunch(ctx context.Context, launchID uuid.UUID) ([]*entities.Project, error) {
 	return s.projectRepo.GetByLaunchIDOrderedByRating(ctx, launchID)
 }
 
@@ -61,28 +62,25 @@ func (s *ProjectService) GetActiveLaunchProjects(ctx context.Context) ([]*entiti
 	return projects, nil
 }
 
-func (s *ProjectService) Vote(ctx context.Context, userID, projectID int64, voteType entities.VoteType) error {
+func (s *ProjectService) Vote(ctx context.Context, userID, projectID uuid.UUID) error {
 	// Получаем активный запуск
 	activeLaunch, err := s.launchRepo.GetActive(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Проверяем, есть ли уже голос от этого пользователя
+	// Проверяем, есть ли уже лайк от этого пользователя
 	existingVote, err := s.voteRepo.GetByUserAndProject(ctx, userID, projectID, activeLaunch.ID)
 	if err == nil && existingVote != nil {
-		// Если голос уже есть, обновляем его
-		existingVote.VoteType = voteType
-		existingVote.CreatedAt = time.Now()
-		return s.voteRepo.Update(ctx, existingVote)
+		// Если лайк уже есть, ничего не делаем (или можно вернуть ошибку)
+		return nil
 	}
 
-	// Создаем новый голос
+	// Создаем новый лайк
 	vote := &entities.Vote{
 		UserID:    userID,
 		ProjectID: projectID,
 		LaunchID:  activeLaunch.ID,
-		VoteType:  voteType,
 		CreatedAt: time.Now(),
 	}
 
@@ -94,8 +92,32 @@ func (s *ProjectService) Vote(ctx context.Context, userID, projectID int64, vote
 	return s.updateProjectRating(ctx, projectID)
 }
 
-func (s *ProjectService) updateProjectRating(ctx context.Context, projectID int64) error {
-	upvotes, downvotes, err := s.voteRepo.GetProjectVotes(ctx, projectID)
+// RemoveVote удаляет лайк пользователя за проект
+func (s *ProjectService) RemoveVote(ctx context.Context, userID, projectID uuid.UUID) error {
+	// Получаем активный запуск
+	activeLaunch, err := s.launchRepo.GetActive(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Проверяем, есть ли лайк от этого пользователя
+	existingVote, err := s.voteRepo.GetByUserAndProject(ctx, userID, projectID, activeLaunch.ID)
+	if err != nil || existingVote == nil {
+		// Лайка нет, ничего не делаем
+		return nil
+	}
+
+	// Удаляем лайк
+	if err := s.voteRepo.Delete(ctx, existingVote.ID); err != nil {
+		return err
+	}
+
+	// Обновляем рейтинг проекта
+	return s.updateProjectRating(ctx, projectID)
+}
+
+func (s *ProjectService) updateProjectRating(ctx context.Context, projectID uuid.UUID) error {
+	upvotes, err := s.voteRepo.GetProjectVotes(ctx, projectID)
 	if err != nil {
 		return err
 	}
@@ -106,15 +128,16 @@ func (s *ProjectService) updateProjectRating(ctx context.Context, projectID int6
 	}
 
 	project.Upvotes = upvotes
-	project.Downvotes = downvotes
-	project.Rating = upvotes - downvotes
+	project.Rating = upvotes
 	project.UpdatedAt = time.Now()
 
 	return s.projectRepo.Update(ctx, project)
 }
 
-func (s *ProjectService) GetUserVotes(ctx context.Context, userID int64) ([]*entities.Vote, error) {
-	// Этот метод нужно будет реализовать в репозитории
-	// Пока возвращаем пустой слайс
-	return []*entities.Vote{}, nil
+func (s *ProjectService) GetUserVotes(ctx context.Context, userID uuid.UUID) ([]*entities.Vote, error) {
+	return s.voteRepo.GetByUserID(ctx, userID)
+}
+
+func (s *ProjectService) GetUserProjects(ctx context.Context, userID uuid.UUID) ([]*entities.Project, error) {
+	return s.projectRepo.GetByUserID(ctx, userID)
 }

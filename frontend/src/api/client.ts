@@ -1,13 +1,15 @@
 import { 
+  User, 
   Project, 
-  ProjectCreateRequest, 
-  ProjectsResponse, 
-  VoteRequest, 
   VoteResponse, 
-  AuthResponse, 
+  Comment, 
+  Launch, 
   ProfileResponse, 
   VotesResponse,
-  Comment
+  CommentsResponse,
+  ProjectCreateRequest,
+  ProjectsResponse,
+  AuthResponse
 } from '../types';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 
@@ -28,6 +30,8 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    
+    console.log('API: Making request to:', url, options);
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -50,14 +54,28 @@ class ApiClient {
 
       clearTimeout(timeoutId);
 
+      console.log('API: Response status:', response.status, response.statusText);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('API: Error response:', errorData);
+        
+        // Handle 401 Unauthorized specifically
+        if (response.status === 401) {
+          // Emit a custom event for authentication failure
+          window.dispatchEvent(new CustomEvent('auth:expired'));
+          throw new Error('Authentication expired. Please log in again.');
+        }
+        
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('API: Response data:', data);
+      return data;
     } catch (error) {
       clearTimeout(timeoutId);
+      console.error('API: Request error:', error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           throw new Error('Request timeout');
@@ -70,11 +88,18 @@ class ApiClient {
 
   // Projects
   async getProjects(): Promise<ProjectsResponse> {
-    return this.request<ProjectsResponse>(API_ENDPOINTS.PROJECTS);
+    const response = await this.request<ProjectsResponse>(API_ENDPOINTS.PROJECTS);
+    return response;
   }
 
-  async getProject(id: number): Promise<Project> {
-    return this.request<Project>(API_ENDPOINTS.PROJECT(id));
+  async getUserProjects(userId: string): Promise<ProjectsResponse> {
+    const response = await this.request<ProjectsResponse>(`/users/${userId}/projects`);
+    return response;
+  }
+
+  async getProject(id: string): Promise<Project> {
+    const response = await this.request<Project>(API_ENDPOINTS.PROJECT(id));
+    return response;
   }
 
   async createProject(projectData: ProjectCreateRequest): Promise<Project> {
@@ -85,11 +110,23 @@ class ApiClient {
   }
 
   // Votes
-  async vote(projectId: number, voteData: VoteRequest): Promise<VoteResponse> {
-    return this.request<VoteResponse>(API_ENDPOINTS.PROJECT_VOTE(projectId), {
+  async vote(projectId: string): Promise<VoteResponse> {
+    console.log('API: Sending vote request:', { projectId });
+    await this.request<VoteResponse>(API_ENDPOINTS.PROJECT_VOTE(projectId), {
       method: 'POST',
-      body: JSON.stringify(voteData),
+      body: JSON.stringify({}),
     });
+    console.log('API: Vote successful');
+    return { success: true, message: 'Vote added successfully' };
+  }
+
+  async removeVote(projectId: string): Promise<VoteResponse> {
+    console.log('API: Sending remove vote request:', { projectId });
+    await this.request<VoteResponse>(API_ENDPOINTS.PROJECT_VOTE(projectId), {
+      method: 'DELETE',
+    });
+    console.log('API: Remove vote successful');
+    return { success: true, message: 'Vote removed successfully' };
   }
 
   async getUserVotes(): Promise<VotesResponse> {
@@ -128,26 +165,29 @@ class ApiClient {
   }
 
   // Comments
-  async getProjectComments(projectId: number): Promise<{ comments: Comment[] }> {
-    return this.request<{ comments: Comment[] }>(API_ENDPOINTS.PROJECT_COMMENTS(projectId));
+  async getProjectComments(projectId: string): Promise<CommentsResponse> {
+    const response = await this.request<CommentsResponse>(API_ENDPOINTS.PROJECT_COMMENTS(projectId));
+    return response;
   }
 
-  async createComment(projectId: number, content: string): Promise<Comment> {
-    return this.request<Comment>(API_ENDPOINTS.PROJECT_COMMENTS(projectId), {
+  async createComment(projectId: string, content: string): Promise<Comment> {
+    const response = await this.request<Comment>(API_ENDPOINTS.PROJECT_COMMENTS(projectId), {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+    return response;
   }
 
-  async updateComment(commentId: number, content: string): Promise<{ status: string }> {
-    return this.request<{ status: string }>(API_ENDPOINTS.COMMENT(commentId), {
+  async updateComment(commentId: string, content: string): Promise<Comment> {
+    const response = await this.request<Comment>(API_ENDPOINTS.COMMENT(commentId), {
       method: 'PUT',
       body: JSON.stringify({ content }),
     });
+    return response;
   }
 
-  async deleteComment(commentId: number): Promise<{ status: string }> {
-    return this.request<{ status: string }>(API_ENDPOINTS.COMMENT(commentId), {
+  async deleteComment(commentId: string): Promise<void> {
+    await this.request(API_ENDPOINTS.COMMENT(commentId), {
       method: 'DELETE',
     });
   }

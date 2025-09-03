@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { useComments } from '../hooks/useComments';
 import { useAuth } from '../hooks/useAuth';
-import { Comment } from '../types';
+import { Comment, Project } from '../types';
+import { VotingButtons } from './VotingButtons';
 
 interface CommentsProps {
-  projectId: number;
+  projectId: string;
+  project?: Project; // Добавляем опциональный проект для отображения голосования
 }
 
-const Comments: React.FC<CommentsProps> = ({ projectId }) => {
-  const { comments, loading, error, addComment, updateComment, deleteComment } = useComments(projectId);
+const Comments: React.FC<CommentsProps> = ({ projectId, project }) => {
+  const { comments, loading, error, addComment, deleteComment } = useComments(projectId);
   const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
-  const [editingComment, setEditingComment] = useState<number | null>(null);
-  const [editContent, setEditContent] = useState('');
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,19 +26,7 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
     }
   };
 
-  const handleEditComment = async (commentId: number) => {
-    if (!editContent.trim()) return;
-
-    try {
-      await updateComment(commentId, editContent);
-      setEditingComment(null);
-      setEditContent('');
-    } catch (error) {
-      console.error('Failed to update comment:', error);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: number) => {
+  const handleDeleteComment = async (commentId: string) => {
     if (!confirm('Are you sure you want to delete this comment?')) return;
 
     try {
@@ -48,14 +36,9 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
     }
   };
 
-  const startEditing = (comment: Comment) => {
-    setEditingComment(comment.id);
-    setEditContent(comment.content);
-  };
-
-  const cancelEditing = () => {
-    setEditingComment(null);
-    setEditContent('');
+  // Проверяем, принадлежит ли комментарий текущему пользователю
+  const canEditComment = (comment: Comment): boolean => {
+    return Boolean(user && comment.user_id === user.id);
   };
 
   const formatDate = (dateString: string) => {
@@ -84,6 +67,18 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
   return (
     <div className="mt-8">
       <h3 className="text-xl font-semibold mb-4">Комментарии ({comments.length})</h3>
+      
+      {/* Voting Section - показываем только если есть данные проекта */}
+      {project && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <h4 className="text-lg font-medium text-gray-900 mb-3">Лайкнуть проект</h4>
+          <VotingButtons
+            projectId={project.id}
+            upvotes={project.upvotes}
+            className="w-fit"
+          />
+        </div>
+      )}
       
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -124,10 +119,10 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-gray-600">
-                      {comment.user_id}
+                      {comment.user_id.slice(0, 8)}...
                     </span>
                   </div>
-                  <span className="text-sm text-gray-600">Пользователь {comment.user_id}</span>
+                  <span className="text-sm text-gray-600">Пользователь {comment.user_id.slice(0, 8)}...</span>
                 </div>
                 <span className="text-xs text-gray-500">
                   {formatDate(comment.created_at)}
@@ -135,41 +130,12 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
                 </span>
               </div>
               
-              {editingComment === comment.id ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={3}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditComment(comment.id)}
-                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      onClick={cancelEditing}
-                      className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                    >
-                      Отмена
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-gray-800 whitespace-pre-wrap">{comment.content}</p>
-                  
-                  {/* Comment actions */}
+              <div>
+                <p className="text-gray-800 whitespace-pre-wrap">{comment.content}</p>
+                
+                {/* Comment actions - показываем только если пользователь может редактировать */}
+                {canEditComment(comment) && (
                   <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => startEditing(comment)}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      Редактировать
-                    </button>
                     <button
                       onClick={() => handleDeleteComment(comment.id)}
                       className="text-sm text-red-600 hover:text-red-800"
@@ -177,8 +143,8 @@ const Comments: React.FC<CommentsProps> = ({ projectId }) => {
                       Удалить
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))
         )}

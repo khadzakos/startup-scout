@@ -2,20 +2,22 @@ package entities
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Vote struct {
-	ID        int64     `json:"id" db:"id"`
-	UserID    int64     `json:"user_id" db:"user_id"`
-	ProjectID int64     `json:"project_id" db:"project_id"`
-	LaunchID  int64     `json:"launch_id" db:"launch_id"`
-	VoteType  VoteType  `json:"vote_type" db:"vote_type"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	ProjectID uuid.UUID `json:"project_id" db:"project_id"`
+	LaunchID  uuid.UUID `json:"launch_id" db:"launch_id"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
-type VoteType string
+// VoteType больше не нужен, так как у нас только лайки
+// type VoteType string
 
-const (
-	VoteTypeUp   VoteType = "up"
-	VoteTypeDown VoteType = "down"
-)
+// const (
+// 	VoteTypeUp   VoteType = "up"
+// 	VoteTypeDown VoteType = "down"
+// )

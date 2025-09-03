@@ -32,8 +32,20 @@ export const useAuthState = () => {
     const savedUser = localStorage.getItem('user');
     
     if (token && savedUser) {
-      apiClient.setToken(token);
-      setUser(JSON.parse(savedUser));
+      const tokenAge = Date.now() - new Date(JSON.parse(savedUser).created_at).getTime();
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      
+      if (tokenAge > maxAge) {
+        // Token is expired, clear it
+        console.log('Token expired, clearing authentication');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        apiClient.setToken(null);
+        setUser(null);
+      } else {
+        apiClient.setToken(token);
+        setUser(JSON.parse(savedUser));
+      }
     }
     
     setLoading(false);
@@ -51,6 +63,11 @@ export const useAuthState = () => {
         response = await apiClient.authYandex(params.code);
       } else {
         throw new Error('Invalid authentication parameters');
+      }
+      
+      // Check if response has required fields
+      if (!response.token || !response.user) {
+        throw new Error('Invalid authentication response');
       }
       
       // Сохраняем токен и пользователя
@@ -74,6 +91,11 @@ export const useAuthState = () => {
       
       const response = await apiClient.registerEmail(email, username, password);
       
+      // Check if response has required fields
+      if (!response.token || !response.user) {
+        throw new Error('Invalid registration response');
+      }
+      
       // Сохраняем токен и пользователя
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
@@ -95,6 +117,51 @@ export const useAuthState = () => {
     localStorage.removeItem('user');
     apiClient.setToken(null);
   };
+
+  // Listen for authentication expiration events
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      console.log('Authentication expired, logging out user');
+      logout();
+      // Redirect to login page
+      window.location.href = '/login';
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, []);
+
+  // Periodic token validation check
+  useEffect(() => {
+    if (!user || !localStorage.getItem('token')) return;
+
+    const checkTokenExpiration = () => {
+      const savedUser = localStorage.getItem('user');
+      if (!savedUser) return;
+
+      try {
+        const userData = JSON.parse(savedUser);
+        const tokenAge = Date.now() - new Date(userData.created_at).getTime();
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        if (tokenAge > maxAge) {
+          console.log('Token expired during periodic check, logging out user');
+          logout();
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('Error checking token expiration:', error);
+      }
+    };
+
+    // Check every 5 minutes
+    const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   return { user, login, register, logout, loading, error };
 };

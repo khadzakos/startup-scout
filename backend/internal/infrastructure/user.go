@@ -6,6 +6,8 @@ import (
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"startup-scout/pkg/clients"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
@@ -53,10 +55,11 @@ func (r *User) Create(
 
 func (r *User) GetByID(
 	ctx context.Context,
-	id int64,
+	id uuid.UUID,
 ) (*entities.User, error) {
 	query := `
-		SELECT * FROM users WHERE id = $1
+		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		FROM users WHERE id = $1
 	`
 	var user entities.User
 	err := r.db.GetDB().GetContext(ctx, &user, query, id)
@@ -73,7 +76,8 @@ func (r *User) GetByAuthID(
 	authType entities.AuthType,
 ) (*entities.User, error) {
 	query := `
-		SELECT * FROM users 
+		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		FROM users 
 		WHERE auth_id = $1 AND auth_type = $2
 	`
 	var user entities.User
@@ -113,7 +117,8 @@ func (r *User) GetByEmail(
 	email string,
 ) (*entities.User, error) {
 	query := `
-		SELECT * FROM users WHERE email = $1 AND is_active = true
+		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		FROM users WHERE email = $1 AND is_active = true
 	`
 	var user entities.User
 	err := r.db.GetDB().GetContext(ctx, &user, query, email)
@@ -129,7 +134,8 @@ func (r *User) GetByTelegramID(
 	telegramID int64,
 ) (*entities.User, error) {
 	query := `
-		SELECT * FROM users WHERE telegram_id = $1 AND is_active = true
+		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		FROM users WHERE telegram_id = $1 AND is_active = true
 	`
 	var user entities.User
 	err := r.db.GetDB().GetContext(ctx, &user, query, telegramID)
@@ -142,7 +148,7 @@ func (r *User) GetByTelegramID(
 
 func (r *User) LinkTelegram(
 	ctx context.Context,
-	userID int64,
+	userID uuid.UUID,
 	telegramID int64,
 ) error {
 	query := `

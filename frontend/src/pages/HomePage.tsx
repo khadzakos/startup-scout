@@ -6,12 +6,17 @@ import { useAuth } from '../hooks/useAuth';
 import { Loader2, TrendingUp, Users, Calendar } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
-  const { projects, loading, error, fetchProjects } = useProjects();
+  const { projects, loading, error, fetchProjects, updateProjectVotes } = useProjects();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Сортируем проекты по рейтингу
-  const sortedProjects = [...projects].sort((a, b) => b.rating - a.rating);
+  const handleVoteSuccess = (projectId: string, upvotes: number) => {
+    console.log('Vote success:', { projectId, upvotes });
+    updateProjectVotes(projectId, upvotes);
+  };
+
+  // Сортируем проекты по количеству лайков
+  const sortedProjects = [...projects].sort((a, b) => b.upvotes - a.upvotes);
 
   if (loading) {
     return (
@@ -134,7 +139,7 @@ export const HomePage: React.FC = () => {
               key={project.id} 
               project={project} 
               rank={index + 1}
-              onVoteSuccess={fetchProjects}
+              onVoteSuccess={() => handleVoteSuccess(project.id, project.upvotes)}
             />
           ))}
         </div>

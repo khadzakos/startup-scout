@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -212,32 +213,21 @@ func (s *AuthService) AuthenticateEmail(ctx context.Context, email, password str
 }
 
 // Связывание Telegram с существующим пользователем
-func (s *AuthService) LinkTelegramToUser(ctx context.Context, userID int64, telegramData map[string]string) error {
-	// Проверяем подпись от Telegram
+func (s *AuthService) LinkTelegramToUser(ctx context.Context, userID uuid.UUID, telegramData map[string]string) error {
+	// Проверяем хеш Telegram
 	if !s.verifyTelegramHash(telegramData) {
 		return fmt.Errorf("invalid telegram hash")
 	}
 
-	// Парсим данные
-	authData := &TelegramAuthData{}
-	if err := s.parseTelegramData(telegramData, authData); err != nil {
-		return err
+	// Парсим данные Telegram
+	var authData TelegramAuthData
+	if err := s.parseTelegramData(telegramData, &authData); err != nil {
+		return fmt.Errorf("failed to parse telegram data: %w", err)
 	}
 
-	// Проверяем, что данные не устарели (не старше 24 часов)
-	if time.Now().Unix()-authData.AuthDate > 86400 {
-		return fmt.Errorf("auth data is too old")
-	}
-
-	// Проверяем, что этот Telegram ID не привязан к другому пользователю
-	existingUser, err := s.userRepo.GetByTelegramID(ctx, authData.ID)
-	if err == nil && existingUser != nil && existingUser.ID != userID {
-		return fmt.Errorf("this telegram account is already linked to another user")
-	}
-
-	// Связываем Telegram с пользователем
+	// Связываем Telegram ID с пользователем
 	if err := s.userRepo.LinkTelegram(ctx, userID, authData.ID); err != nil {
-		return err
+		return fmt.Errorf("failed to link telegram: %w", err)
 	}
 
 	return nil

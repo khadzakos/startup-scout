@@ -6,6 +6,8 @@ import (
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"startup-scout/pkg/clients"
+
+	"github.com/google/uuid"
 )
 
 type Project struct {
@@ -39,7 +41,7 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 	return nil
 }
 
-func (r *Project) GetByID(ctx context.Context, id int64) (*entities.Project, error) {
+func (r *Project) GetByID(ctx context.Context, id uuid.UUID) (*entities.Project, error) {
 	query := `
 		SELECT * FROM projects WHERE id = $1
 	`
@@ -52,7 +54,7 @@ func (r *Project) GetByID(ctx context.Context, id int64) (*entities.Project, err
 	return &project, nil
 }
 
-func (r *Project) GetByLaunchID(ctx context.Context, launchID int64) ([]*entities.Project, error) {
+func (r *Project) GetByLaunchID(ctx context.Context, launchID uuid.UUID) ([]*entities.Project, error) {
 	query := `
 		SELECT * FROM projects WHERE launch_id = $1
 	`
@@ -65,7 +67,7 @@ func (r *Project) GetByLaunchID(ctx context.Context, launchID int64) ([]*entitie
 	return projects, nil
 }
 
-func (r *Project) GetByLaunchIDOrderedByRating(ctx context.Context, launchID int64) ([]*entities.Project, error) {
+func (r *Project) GetByLaunchIDOrderedByRating(ctx context.Context, launchID uuid.UUID) ([]*entities.Project, error) {
 	query := `
 		SELECT * FROM projects WHERE launch_id = $1 ORDER BY rating DESC
 	`
@@ -80,7 +82,17 @@ func (r *Project) GetByLaunchIDOrderedByRating(ctx context.Context, launchID int
 
 func (r *Project) Update(ctx context.Context, project *entities.Project) error {
 	query := `
-		UPDATE projects SET name = :name, description = :description, full_description = :full_description, images = :images, creators = :creators, telegram_contact = :telegram_contact, website = :website, updated_at = :updated_at
+		UPDATE projects SET 
+			name = :name, 
+			description = :description, 
+			full_description = :full_description, 
+			images = :images, 
+			creators = :creators, 
+			telegram_contact = :telegram_contact, 
+			website = :website, 
+			upvotes = :upvotes,
+			rating = :rating,
+			updated_at = :updated_at
 		WHERE id = :id
 	`
 	_, err := r.db.GetDB().NamedExecContext(ctx, query, project)
@@ -91,7 +103,7 @@ func (r *Project) Update(ctx context.Context, project *entities.Project) error {
 	return nil
 }
 
-func (r *Project) Delete(ctx context.Context, id int64) error {
+func (r *Project) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `
 		DELETE FROM projects WHERE id = $1
 	`
@@ -101,4 +113,17 @@ func (r *Project) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+func (r *Project) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Project, error) {
+	query := `
+		SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC
+	`
+	var projects []*entities.Project
+	err := r.db.GetDB().SelectContext(ctx, &projects, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get projects by user id: %w", err)
+	}
+
+	return projects, nil
 }

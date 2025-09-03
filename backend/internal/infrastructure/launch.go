@@ -6,6 +6,8 @@ import (
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"startup-scout/pkg/clients"
+
+	"github.com/google/uuid"
 )
 
 type Launch struct {
@@ -35,7 +37,7 @@ func (r *Launch) Create(ctx context.Context, launch *entities.Launch) error {
 	return nil
 }
 
-func (r *Launch) GetByID(ctx context.Context, id int64) (*entities.Launch, error) {
+func (r *Launch) GetByID(ctx context.Context, id uuid.UUID) (*entities.Launch, error) {
 	query := `
 		SELECT * FROM launches WHERE id = $1
 	`
@@ -90,7 +92,7 @@ func (r *Launch) Update(ctx context.Context, launch *entities.Launch) error {
 	return nil
 }
 
-func (r *Launch) Delete(ctx context.Context, id int64) error {
+func (r *Launch) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `
 		DELETE FROM launches WHERE id = $1
 	`
@@ -102,10 +104,7 @@ func (r *Launch) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *Launch) GetProjectsByLaunchID(
-	ctx context.Context,
-	launchID int64,
-) ([]*entities.Project, error) {
+func (r *Launch) GetProjectsByLaunchID(ctx context.Context, launchID uuid.UUID) ([]*entities.Project, error) {
 	query := `
 		SELECT * FROM projects WHERE launch_id = $1
 	`

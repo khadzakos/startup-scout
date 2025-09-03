@@ -1,28 +1,22 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  ChevronUp, 
-  ChevronDown, 
   ExternalLink, 
   MessageCircle,
   ArrowLeft,
   Calendar
 } from 'lucide-react';
 import { useProject } from '../hooks/useProjects';
-import { useAuth } from '../hooks/useAuth';
-import { useVoting } from '../hooks/useVoting';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { VoteType } from '../types';
 import { Loader2 } from 'lucide-react';
 import { Comments } from '../components/Comments';
+import { VotingButtons } from '../components/VotingButtons';
 
 export const ProjectPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const projectId = id ? parseInt(id, 10) : 0;
+  const projectId = id ? id : '';
   const { project, loading, error, fetchProject } = useProject(projectId);
-  const { user } = useAuth();
-  const { vote, loading: votingLoading } = useVoting();
 
   if (loading) {
     return (
@@ -47,15 +41,6 @@ export const ProjectPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleVote = async (type: VoteType) => {
-    if (!user) return;
-    
-    const success = await vote(project.id, type);
-    if (success) {
-      fetchProject(); // Обновляем данные проекта после голосования
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -89,37 +74,11 @@ export const ProjectPage: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-gray-50 rounded-lg p-1">
-                <button
-                  onClick={() => handleVote('up')}
-                  disabled={!user || votingLoading}
-                  className={`p-2 rounded-md transition-colors ${
-                    user && !votingLoading
-                      ? 'hover:bg-green-100 hover:text-green-600 text-gray-600' 
-                      : 'text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={user ? 'Проголосовать за' : 'Войдите, чтобы голосовать'}
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </button>
-                
-                <span className="px-2 text-sm font-semibold text-gray-900 min-w-[2rem] text-center">
-                  {project.rating}
-                </span>
-                
-                <button
-                  onClick={() => handleVote('down')}
-                  disabled={!user || votingLoading}
-                  className={`p-2 rounded-md transition-colors ${
-                    user && !votingLoading
-                      ? 'hover:bg-red-100 hover:text-red-600 text-gray-600' 
-                      : 'text-gray-400 cursor-not-allowed'
-                  }`}
-                  title={user ? 'Проголосовать против' : 'Войдите, чтобы голосовать'}
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </div>
+              <VotingButtons
+                projectId={project.id}
+                upvotes={project.upvotes}
+                onVoteSuccess={fetchProject}
+              />
             </div>
           </div>
         </div>
@@ -197,7 +156,7 @@ export const ProjectPage: React.FC = () => {
           )}
 
           {/* Comments */}
-          <Comments projectId={project.id} />
+          <Comments projectId={project.id} project={project} />
         </div>
       </div>
     </div>

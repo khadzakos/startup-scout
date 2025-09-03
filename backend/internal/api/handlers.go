@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"startup-scout/internal/entities"
 	"startup-scout/internal/services"
-	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -57,7 +57,7 @@ func (h *Handlers) GetProjects(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) GetProject(w http.ResponseWriter, r *http.Request) {
 	projectIDStr := chi.URLParam(r, "id")
-	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
 		http.Error(w, "Invalid project ID", http.StatusBadRequest)
 		return
@@ -65,7 +65,7 @@ func (h *Handlers) GetProject(w http.ResponseWriter, r *http.Request) {
 
 	project, err := h.projectService.GetProject(r.Context(), projectID)
 	if err != nil {
-		h.logger.Error("failed to get project", zap.Error(err), zap.Int64("project_id", projectID))
+		h.logger.Error("failed to get project", zap.Error(err), zap.String("project_id", projectIDStr))
 		http.Error(w, "Project not found", http.StatusNotFound)
 		return
 	}
@@ -81,8 +81,9 @@ func (h *Handlers) CreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем пользователя из контекста (после аутентификации)
-	_ = r.Context().Value("user_id").(int64)
-	// TODO: Добавить user_id в проект или создать отдельную таблицу для связи
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	project.UserID = userID
 
 	if err := h.projectService.CreateProject(r.Context(), &project); err != nil {
 		h.logger.Error("failed to create project", zap.Error(err))
@@ -96,39 +97,66 @@ func (h *Handlers) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) Vote(w http.ResponseWriter, r *http.Request) {
 	projectIDStr := chi.URLParam(r, "id")
-	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
+		h.logger.Error("failed to parse project ID", zap.Error(err), zap.String("project_id", projectIDStr))
 		http.Error(w, "Invalid project ID", http.StatusBadRequest)
 		return
 	}
 
-	var request struct {
-		VoteType string `json:"vote_type"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	h.logger.Info("Vote request received", zap.String("project_id", projectIDStr))
+
+	// Получаем пользователя из контекста (после аутентификации)
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	h.logger.Info("Processing vote",
+		zap.String("user_id", userID.String()),
+		zap.String("project_id", projectIDStr))
+
+	if err := h.projectService.Vote(r.Context(), userID, projectID); err != nil {
+		h.logger.Error("failed to vote", zap.Error(err),
+			zap.String("user_id", userID.String()),
+			zap.String("project_id", projectIDStr))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	var voteType entities.VoteType
-	switch request.VoteType {
-	case "up":
-		voteType = entities.VoteTypeUp
-	case "down":
-		voteType = entities.VoteTypeDown
-	default:
-		http.Error(w, "Invalid vote type", http.StatusBadRequest)
+	h.logger.Info("Vote processed successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("project_id", projectIDStr))
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+// RemoveVote удаляет голос пользователя за проект
+func (h *Handlers) RemoveVote(w http.ResponseWriter, r *http.Request) {
+	projectIDStr := chi.URLParam(r, "id")
+	projectID, err := uuid.Parse(projectIDStr)
+	if err != nil {
+		h.logger.Error("failed to parse project ID for remove vote", zap.Error(err), zap.String("project_id", projectIDStr))
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
 		return
 	}
 
 	// Получаем пользователя из контекста (после аутентификации)
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
-	if err := h.projectService.Vote(r.Context(), userID, projectID, voteType); err != nil {
-		h.logger.Error("failed to vote", zap.Error(err))
+	h.logger.Info("Remove vote request received",
+		zap.String("user_id", userID.String()),
+		zap.String("project_id", projectIDStr))
+
+	if err := h.projectService.RemoveVote(r.Context(), userID, projectID); err != nil {
+		h.logger.Error("failed to remove vote", zap.Error(err),
+			zap.String("user_id", userID.String()),
+			zap.String("project_id", projectIDStr))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	h.logger.Info("Vote removed successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("project_id", projectIDStr))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
@@ -238,7 +266,7 @@ func (h *Handlers) AuthEmail(w http.ResponseWriter, r *http.Request) {
 // Связывание Telegram с пользователем
 func (h *Handlers) LinkTelegram(w http.ResponseWriter, r *http.Request) {
 	// Получаем пользователя из контекста (после аутентификации)
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
 	var data map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -257,7 +285,7 @@ func (h *Handlers) LinkTelegram(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetProfile(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
 	// TODO: Получить профиль пользователя из базы данных
 	// Пока возвращаем базовую информацию
@@ -268,7 +296,7 @@ func (h *Handlers) GetProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetUserVotes(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
 	votes, err := h.projectService.GetUserVotes(r.Context(), userID)
 	if err != nil {
@@ -282,10 +310,37 @@ func (h *Handlers) GetUserVotes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handlers) GetUserProjects(w http.ResponseWriter, r *http.Request) {
+	userIDStr := chi.URLParam(r, "id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// Проверяем, что пользователь запрашивает свои проекты
+	requestingUserID := r.Context().Value("user_id").(uuid.UUID)
+	if requestingUserID != userID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	projects, err := h.projectService.GetUserProjects(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("failed to get user projects", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"projects": projects,
+	})
+}
+
 // Comment handlers
 func (h *Handlers) GetProjectComments(w http.ResponseWriter, r *http.Request) {
 	projectIDStr := chi.URLParam(r, "id")
-	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
 		http.Error(w, "Invalid project ID", http.StatusBadRequest)
 		return
@@ -309,7 +364,7 @@ func (h *Handlers) GetProjectComments(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) CreateComment(w http.ResponseWriter, r *http.Request) {
 	projectIDStr := chi.URLParam(r, "id")
-	projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
+	projectID, err := uuid.Parse(projectIDStr)
 	if err != nil {
 		http.Error(w, "Invalid project ID", http.StatusBadRequest)
 		return
@@ -328,7 +383,7 @@ func (h *Handlers) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
 	comment, err := h.commentService.CreateComment(r.Context(), userID, projectID, request.Content)
 	if err != nil {
@@ -343,7 +398,7 @@ func (h *Handlers) CreateComment(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	commentIDStr := chi.URLParam(r, "commentId")
-	commentID, err := strconv.ParseInt(commentIDStr, 10, 64)
+	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
 		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
 		return
@@ -362,7 +417,7 @@ func (h *Handlers) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("user_id").(int64)
+	userID := r.Context().Value("user_id").(uuid.UUID)
 
 	if err := h.commentService.UpdateComment(r.Context(), commentID, userID, request.Content); err != nil {
 		h.logger.Error("failed to update comment", zap.Error(err))
@@ -376,13 +431,16 @@ func (h *Handlers) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	commentIDStr := chi.URLParam(r, "commentId")
-	commentID, err := strconv.ParseInt(commentIDStr, 10, 64)
+	commentID, err := uuid.Parse(commentIDStr)
 	if err != nil {
 		http.Error(w, "Invalid comment ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.commentService.DeleteComment(r.Context(), commentID); err != nil {
+	// Получаем пользователя из контекста (после аутентификации)
+	userID := r.Context().Value("user_id").(uuid.UUID)
+
+	if err := h.commentService.DeleteComment(r.Context(), commentID, userID); err != nil {
 		h.logger.Error("failed to delete comment", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

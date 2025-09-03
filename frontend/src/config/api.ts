@@ -9,12 +9,12 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   // Projects
   PROJECTS: '/projects',
-  PROJECT: (id: number) => `/projects/${id}`,
-  PROJECT_VOTE: (id: number) => `/projects/${id}/vote`,
+  PROJECT: (id: string) => `/projects/${id}`,
+  PROJECT_VOTE: (id: string) => `/projects/${id}/vote`,
   
   // Comments
-  PROJECT_COMMENTS: (id: number) => `/projects/${id}/comments`,
-  COMMENT: (id: number) => `/comments/${id}`,
+  PROJECT_COMMENTS: (id: string) => `/projects/${id}/comments`,
+  COMMENT: (id: string) => `/comments/${id}`,
   
   // Auth
   AUTH_EMAIL_REGISTER: '/auth/email/register',

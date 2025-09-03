@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"startup-scout/internal/entities"
 	"startup-scout/internal/repository"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type CommentService struct {
@@ -17,7 +20,7 @@ func NewCommentService(commentRepo repository.CommentRepository) *CommentService
 	}
 }
 
-func (s *CommentService) CreateComment(ctx context.Context, userID, projectID int64, content string) (*entities.Comment, error) {
+func (s *CommentService) CreateComment(ctx context.Context, userID, projectID uuid.UUID, content string) (*entities.Comment, error) {
 	comment := &entities.Comment{
 		UserID:    userID,
 		ProjectID: projectID,
@@ -27,27 +30,46 @@ func (s *CommentService) CreateComment(ctx context.Context, userID, projectID in
 	}
 
 	if err := s.commentRepo.Create(ctx, comment); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create comment: %w", err)
 	}
 
 	return comment, nil
 }
 
-func (s *CommentService) GetProjectComments(ctx context.Context, projectID int64) ([]*entities.Comment, error) {
+func (s *CommentService) GetProjectComments(ctx context.Context, projectID uuid.UUID) ([]*entities.Comment, error) {
 	return s.commentRepo.GetByProjectID(ctx, projectID)
 }
 
-func (s *CommentService) UpdateComment(ctx context.Context, commentID, userID int64, content string) error {
-	comment := &entities.Comment{
-		ID:        commentID,
-		UserID:    userID,
-		Content:   content,
-		UpdatedAt: time.Now(),
+func (s *CommentService) UpdateComment(ctx context.Context, commentID, userID uuid.UUID, content string) error {
+	// Получаем комментарий для проверки принадлежности
+	comment, err := s.commentRepo.GetByID(ctx, commentID)
+	if err != nil {
+		return fmt.Errorf("failed to get comment: %w", err)
 	}
+
+	// Проверяем, что комментарий принадлежит пользователю
+	if comment.UserID != userID {
+		return fmt.Errorf("comment does not belong to user")
+	}
+
+	// Обновляем содержимое и время
+	comment.Content = content
+	comment.UpdatedAt = time.Now()
 
 	return s.commentRepo.Update(ctx, comment)
 }
 
-func (s *CommentService) DeleteComment(ctx context.Context, commentID int64) error {
+func (s *CommentService) DeleteComment(ctx context.Context, commentID, userID uuid.UUID) error {
+	// Получаем комментарий для проверки принадлежности
+	comment, err := s.commentRepo.GetByID(ctx, commentID)
+	if err != nil {
+		return fmt.Errorf("failed to get comment: %w", err)
+	}
+
+	// Проверяем, что комментарий принадлежит пользователю
+	if comment.UserID != userID {
+		return fmt.Errorf("comment does not belong to user")
+	}
+
 	return s.commentRepo.Delete(ctx, commentID)
 }

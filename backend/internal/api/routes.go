@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"startup-scout/internal/repository"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/google/uuid"
 )
 
 func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth, userRepo repository.UserRepository) http.Handler {
@@ -45,7 +47,9 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth, userRepo reposito
 		r.Use(userContextMiddleware(userRepo))
 
 		r.Post("/projects", handlers.CreateProject)
+		r.Get("/users/{id}/projects", handlers.GetUserProjects)
 		r.Post("/projects/{id}/vote", handlers.Vote)
+		r.Delete("/projects/{id}/vote", handlers.RemoveVote)
 		r.Post("/projects/{id}/comments", handlers.CreateComment)
 		r.Put("/comments/{commentId}", handlers.UpdateComment)
 		r.Delete("/comments/{commentId}", handlers.DeleteComment)
@@ -62,16 +66,26 @@ func userContextMiddleware(userRepo repository.UserRepository) func(http.Handler
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, claims, err := jwtauth.FromContext(r.Context())
 			if err != nil {
+				fmt.Printf("JWT FromContext error: %v\n", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			if userIDFloat, ok := claims["user_id"].(float64); ok {
-				userID := int64(userIDFloat)
+			fmt.Printf("JWT claims: %+v\n", claims)
+			fmt.Printf("user_id type: %T, value: %v\n", claims["user_id"], claims["user_id"])
+
+			if userIDString, ok := claims["user_id"].(string); ok {
+				userID, err := uuid.Parse(userIDString)
+				if err != nil {
+					fmt.Printf("UUID parse error: %v\n", err)
+					http.Error(w, "Invalid user ID format", http.StatusUnauthorized)
+					return
+				}
 
 				// Проверяем, что пользователь существует
 				user, err := userRepo.GetByID(r.Context(), userID)
 				if err != nil || user == nil {
+					fmt.Printf("User not found: %v\n", err)
 					http.Error(w, "User not found", http.StatusUnauthorized)
 					return
 				}
@@ -79,6 +93,7 @@ func userContextMiddleware(userRepo repository.UserRepository) func(http.Handler
 				ctx := context.WithValue(r.Context(), "user_id", userID)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else {
+				fmt.Printf("user_id is not a string\n")
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 			}
 		})
