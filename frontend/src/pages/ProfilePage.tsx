@@ -185,6 +185,83 @@ export const ProfilePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* My Launches */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <Rocket className="w-5 h-5 text-accent-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Мои запуски</h2>
+        </div>
+
+        <div className="space-y-4">
+          {userProjects.length > 0 ? (
+            userProjects.slice(0, 10).map(project => (
+              <div 
+                key={project.id}
+                className="border border-gray-200 rounded-lg p-4 hover:border-primary-200 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <Link 
+                      to={`/project/${project.id}`}
+                      className="block text-lg font-medium text-gray-900 hover:text-primary-600 transition-colors"
+                    >
+                      {project.name}
+                    </Link>
+                    <p className="text-gray-600 mt-1">
+                      {project.description}
+                    </p>
+                    <div className="flex items-center space-x-4 mt-3">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-accent-100 text-accent-800">
+                        🚀 Запущен
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(project.created_at).toLocaleDateString('ru-RU')}
+                      </span>
+                      <div className="flex items-center space-x-1">
+                        <Heart className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-gray-600">{project.upvotes}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <Link 
+                      to={`/project/${project.id}`}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                    >
+                      Перейти к проекту →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-gray-400 text-lg mb-2">🚀</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Пока нет запусков
+              </h3>
+              <p className="text-gray-600">
+                Опубликуйте свой первый проект, чтобы увидеть его здесь
+              </p>
+              <Link 
+                to="/publish"
+                className="inline-flex items-center mt-3 px-4 py-2 text-sm font-medium text-white bg-accent-600 rounded-lg hover:bg-accent-700 transition-colors"
+              >
+                Опубликовать проект
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {userProjects.length > 10 && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Показано 10 из {userProjects.length} проектов
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
