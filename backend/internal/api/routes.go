@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"startup-scout/internal/repository"
 
@@ -66,18 +65,13 @@ func userContextMiddleware(userRepo repository.UserRepository) func(http.Handler
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, claims, err := jwtauth.FromContext(r.Context())
 			if err != nil {
-				fmt.Printf("JWT FromContext error: %v\n", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			fmt.Printf("JWT claims: %+v\n", claims)
-			fmt.Printf("user_id type: %T, value: %v\n", claims["user_id"], claims["user_id"])
-
 			if userIDString, ok := claims["user_id"].(string); ok {
 				userID, err := uuid.Parse(userIDString)
 				if err != nil {
-					fmt.Printf("UUID parse error: %v\n", err)
 					http.Error(w, "Invalid user ID format", http.StatusUnauthorized)
 					return
 				}
@@ -85,7 +79,6 @@ func userContextMiddleware(userRepo repository.UserRepository) func(http.Handler
 				// Проверяем, что пользователь существует
 				user, err := userRepo.GetByID(r.Context(), userID)
 				if err != nil || user == nil {
-					fmt.Printf("User not found: %v\n", err)
 					http.Error(w, "User not found", http.StatusUnauthorized)
 					return
 				}
@@ -93,7 +86,6 @@ func userContextMiddleware(userRepo repository.UserRepository) func(http.Handler
 				ctx := context.WithValue(r.Context(), "user_id", userID)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else {
-				fmt.Printf("user_id is not a string\n")
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 			}
 		})
