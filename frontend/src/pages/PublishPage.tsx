@@ -10,6 +10,8 @@ export const PublishPage: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   const [formData, setFormData] = useState<ProjectCreateRequest>({
     name: '',
@@ -79,6 +81,11 @@ export const PublishPage: React.FC = () => {
       return;
     }
 
+    // Сбрасываем предыдущие сообщения
+    setError(null);
+    setSuccess(null);
+    setRedirecting(false);
+
     // Валидация
     if (!formData.name.trim()) {
       setError('Название проекта обязательно');
@@ -107,8 +114,14 @@ export const PublishPage: React.FC = () => {
         creators: filteredCreators
       };
 
-      await apiClient.createProject(projectData);
-      navigate('/');
+      const createdProject = await apiClient.createProject(projectData);
+      setError(null);
+      setSuccess('Проект успешно создан! Перенаправляем...');
+      setRedirecting(true);
+      
+      setTimeout(() => {
+        navigate(`/project/${createdProject.id}`);
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при создании проекта');
     } finally {
@@ -141,7 +154,8 @@ export const PublishPage: React.FC = () => {
         <div className="mb-8">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center space-x-3 text-secondary-600 hover:text-secondary-900 transition-colors p-3 rounded-xl hover:bg-white/50"
+            disabled={redirecting}
+            className="inline-flex items-center space-x-3 text-secondary-600 hover:text-secondary-900 transition-colors p-3 rounded-xl hover:bg-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">Назад к проектам</span>
@@ -160,6 +174,18 @@ export const PublishPage: React.FC = () => {
           {error && (
             <div className="bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-xl mb-6">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6">
+              {success}
+              {redirecting && (
+                <div className="mt-3 flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                  <span className="text-sm">Подготовка к переходу...</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -322,15 +348,16 @@ export const PublishPage: React.FC = () => {
             <div className="flex gap-4 pt-8">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || redirecting}
                 className="flex-1 bg-gradient-to-r from-accent-500 to-accent-600 text-white py-4 px-8 rounded-xl hover:from-accent-600 hover:to-accent-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-lg"
               >
-                {loading ? 'Публикация...' : 'Опубликовать проект'}
+                {loading ? 'Публикация...' : redirecting ? 'Перенаправляем...' : 'Опубликовать проект'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-8 py-4 border-2 border-secondary-300 text-secondary-700 rounded-xl hover:bg-secondary-50 transition-all duration-200 font-semibold text-lg"
+                disabled={redirecting}
+                className="px-8 py-4 border-2 border-secondary-300 text-secondary-700 rounded-xl hover:bg-secondary-50 transition-all duration-200 font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Отмена
               </button>

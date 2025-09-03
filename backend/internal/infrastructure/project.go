@@ -33,13 +33,30 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 			created_at, 
 			updated_at
 		)
-		VALUES (:name, :description, :full_description, :images, :creators, :telegram_contact, :website, :launch_id, :user_id, :created_at, :updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id
 	`
-	_, err := r.db.GetDB().NamedExecContext(ctx, query, project)
+
+	var id uuid.UUID
+	err := r.db.GetDB().QueryRowContext(ctx, query,
+		project.Name,
+		project.Description,
+		project.FullDescription,
+		project.Images,
+		project.Creators,
+		project.TelegramContact,
+		project.Website,
+		project.LaunchID,
+		project.UserID,
+		project.CreatedAt,
+		project.UpdatedAt,
+	).Scan(&id)
+
 	if err != nil {
 		return fmt.Errorf("failed to create project: %w", err)
 	}
 
+	project.ID = id
 	return nil
 }
 
