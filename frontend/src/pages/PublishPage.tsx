@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../api/client';
 import { ProjectCreateRequest } from '../types';
+import { ImageUpload } from '../components/ImageUpload';
 
 export const PublishPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,13 +18,14 @@ export const PublishPage: React.FC = () => {
     name: '',
     description: '',
     full_description: '',
+    logo: null,
     images: [],
     creators: [''],
     telegram_contact: '',
     website: '',
   });
 
-  const handleInputChange = (field: keyof ProjectCreateRequest, value: string | string[]) => {
+  const handleInputChange = (field: keyof ProjectCreateRequest, value: string | string[] | null) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -56,22 +58,6 @@ export const PublishPage: React.FC = () => {
     }
   };
 
-  const addImage = () => {
-    const url = prompt('Введите URL изображения:');
-    if (url && url.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, url.trim()]
-      }));
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +224,94 @@ export const PublishPage: React.FC = () => {
               />
             </div>
 
+            {/* Логотип проекта */}
+            <div>
+              <label className="block text-sm font-semibold text-secondary-700 mb-2">
+                Логотип проекта
+              </label>
+              <div className="space-y-4">
+                {formData.logo ? (
+                  <div className="flex items-center space-x-4">
+                    <img
+                      src={formData.logo}
+                      alt="Project logo"
+                      className="w-16 h-16 object-cover rounded-lg border border-secondary-300"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-secondary-600">Логотип загружен</p>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('logo', null)}
+                        className="text-sm text-red-600 hover:text-red-700 mt-1"
+                      >
+                        Удалить логотип
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border-2 border-dashed border-secondary-300 rounded-xl">
+                    <p className="text-secondary-600 mb-4">Логотип не загружен</p>
+                    <ImageUpload
+                      onImageUploaded={(imageUrl) => {
+                        handleInputChange('logo', imageUrl);
+                      }}
+                      multiple={false}
+                      maxImages={1}
+                      className=""
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Изображения проекта */}
+            <div>
+              <label className="block text-sm font-semibold text-secondary-700 mb-2">
+                Изображения проекта
+              </label>
+              <ImageUpload
+                onImageUploaded={(imageUrl) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    images: [...prev.images, imageUrl]
+                  }));
+                }}
+                multiple={true}
+                maxImages={5}
+                className="border-2 border-dashed border-secondary-300 rounded-xl p-6 hover:border-primary-400 transition-colors"
+              />
+              {formData.images.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-secondary-600 mb-2">
+                    Загружено изображений: {formData.images.length}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.images.map((imageUrl, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={imageUrl}
+                          alt={`Project image ${index + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Создатели */}
             <div>
               <label className="block text-sm font-semibold text-secondary-700 mb-2">
@@ -275,44 +349,6 @@ export const PublishPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Изображения */}
-            <div>
-              <label className="block text-sm font-semibold text-secondary-700 mb-2">
-                Изображения проекта
-              </label>
-              <div className="space-y-2">
-                {formData.images.map((image, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input
-                      type="url"
-                      value={image}
-                      onChange={(e) => {
-                        const newImages = [...formData.images];
-                        newImages[index] = e.target.value;
-                        handleInputChange('images', newImages);
-                      }}
-                      className="flex-1 px-4 py-3 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                      placeholder="URL изображения"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="px-4 py-3 text-error-600 hover:text-error-800 hover:bg-error-50 rounded-xl transition-all duration-200"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addImage}
-                  className="flex items-center space-x-2 text-accent-600 hover:text-accent-700 transition-colors p-2 rounded-xl hover:bg-accent-50"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span>Добавить изображение</span>
-                </button>
-              </div>
-            </div>
 
             {/* Контакты */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

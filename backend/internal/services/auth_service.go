@@ -5,12 +5,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"sort"
 	"startup-scout/internal/entities"
+	"startup-scout/internal/errors"
 	"startup-scout/internal/repository"
 	"strings"
 	"time"
@@ -25,11 +23,9 @@ type AuthService struct {
 }
 
 type AuthConfig struct {
-	TelegramBotToken   string
-	YandexClientID     string
-	YandexClientSecret string
-	JWTSecret          string
-	SessionDuration    time.Duration
+	TelegramBotToken string
+	JWTSecret        string
+	SessionDuration  time.Duration
 }
 
 func NewAuthService(userRepo repository.UserRepository, config AuthConfig) *AuthService {
@@ -110,66 +106,18 @@ func (s *AuthService) parseTelegramData(data map[string]string, authData *Telegr
 	return nil
 }
 
-type YandexAuthData struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
-}
-
-type YandexUserInfo struct {
-	ID        string `json:"id"`
-	Login     string `json:"login"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	RealName  string `json:"real_name"`
-	AvatarID  string `json:"avatar_id"`
-	Email     string `json:"default_email"`
-}
-
-func (s *AuthService) AuthenticateYandex(ctx context.Context, code string) (*entities.User, error) {
-	// Получаем access token
-	authData, err := s.getYandexAccessToken(code)
-	if err != nil {
-		return nil, err
-	}
-
-	// Получаем информацию о пользователе
-	userInfo, err := s.getYandexUserInfo(authData.AccessToken)
-	if err != nil {
-		return nil, err
-	}
-
-	// Ищем пользователя или создаем нового
-	user, err := s.userRepo.GetByAuthID(ctx, userInfo.ID, entities.AuthTypeYandex)
-	if err == nil && user != nil {
-		return user, nil
-	}
-
-	// Создаем нового пользователя
-	user = &entities.User{
-		Username:  userInfo.Login,
-		Email:     userInfo.Email,
-		Avatar:    fmt.Sprintf("https://avatars.yandex.net/get-yapic/%s/islands-200", userInfo.AvatarID),
-		AuthType:  entities.AuthTypeYandex,
-		AuthID:    userInfo.ID,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	if err := s.userRepo.Create(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
 // Email авторизация
 func (s *AuthService) RegisterEmail(ctx context.Context, email, username, password string) (*entities.User, error) {
 	// Проверяем, что пользователь с таким email не существует
 	existingUser, err := s.userRepo.GetByEmail(ctx, email)
 	if err == nil && existingUser != nil {
-		return nil, fmt.Errorf("user with this email already exists")
+		return nil, errors.ErrEmailExists
+	}
+
+	// Проверяем, что пользователь с таким username не существует
+	existingUserByUsername, err := s.userRepo.GetByUsername(ctx, username)
+	if err == nil && existingUserByUsername != nil {
+		return nil, errors.ErrUsernameExists
 	}
 
 	// Хешируем пароль
@@ -201,12 +149,12 @@ func (s *AuthService) AuthenticateEmail(ctx context.Context, email, password str
 	// Получаем пользователя по email
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, errors.ErrUserNotFound
 	}
 
 	// Проверяем пароль
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, errors.ErrInvalidPassword
 	}
 
 	return user, nil
@@ -216,13 +164,13 @@ func (s *AuthService) AuthenticateEmail(ctx context.Context, email, password str
 func (s *AuthService) LinkTelegramToUser(ctx context.Context, userID uuid.UUID, telegramData map[string]string) error {
 	// Проверяем хеш Telegram
 	if !s.verifyTelegramHash(telegramData) {
-		return fmt.Errorf("invalid telegram hash")
+		return errors.ErrInvalidTelegramHash
 	}
 
 	// Парсим данные Telegram
 	var authData TelegramAuthData
 	if err := s.parseTelegramData(telegramData, &authData); err != nil {
-		return fmt.Errorf("failed to parse telegram data: %w", err)
+		return errors.ErrInvalidTelegramHash
 	}
 
 	// Связываем Telegram ID с пользователем
@@ -231,48 +179,4 @@ func (s *AuthService) LinkTelegramToUser(ctx context.Context, userID uuid.UUID, 
 	}
 
 	return nil
-}
-
-func (s *AuthService) getYandexAccessToken(code string) (*YandexAuthData, error) {
-	data := url.Values{}
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("client_id", s.config.YandexClientID)
-	data.Set("client_secret", s.config.YandexClientSecret)
-
-	resp, err := http.PostForm("https://oauth.yandex.ru/token", data)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var authData YandexAuthData
-	if err := json.NewDecoder(resp.Body).Decode(&authData); err != nil {
-		return nil, err
-	}
-
-	return &authData, nil
-}
-
-func (s *AuthService) getYandexUserInfo(accessToken string) (*YandexUserInfo, error) {
-	req, err := http.NewRequest("GET", "https://login.yandex.ru/info", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Authorization", "OAuth "+accessToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var userInfo YandexUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return nil, err
-	}
-
-	return &userInfo, nil
 }

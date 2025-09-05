@@ -32,9 +32,13 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth, userRepo reposito
 		r.Get("/projects", handlers.GetProjects)
 		r.Get("/projects/{id}", handlers.GetProject)
 		r.Get("/projects/{id}/comments", handlers.GetProjectComments)
+		r.Get("/stats", handlers.GetStats)
+
+		// Image routes (public access to view images)
+		r.Get("/images/{filename}", handlers.GetImage)
+		r.Head("/images/{filename}", handlers.GetImage)
 
 		// Auth routes
-		r.Get("/auth/yandex", handlers.AuthYandex)
 		r.Post("/auth/email/register", handlers.RegisterEmail)
 		r.Post("/auth/email/login", handlers.AuthEmail)
 	})
@@ -53,8 +57,13 @@ func SetupRoutes(handlers *Handlers, jwtAuth *jwtauth.JWTAuth, userRepo reposito
 		r.Put("/comments/{commentId}", handlers.UpdateComment)
 		r.Delete("/comments/{commentId}", handlers.DeleteComment)
 		r.Get("/profile", handlers.GetProfile)
+		r.Put("/profile", handlers.UpdateProfile)
+		r.Put("/profile/avatar", handlers.UpdateAvatar)
 		r.Get("/votes", handlers.GetUserVotes)
 		r.Post("/auth/telegram/link", handlers.LinkTelegram)
+
+		// Image upload (protected)
+		r.Post("/images/upload", handlers.UploadImage)
 	})
 
 	return r

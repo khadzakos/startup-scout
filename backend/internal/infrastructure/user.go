@@ -26,6 +26,8 @@ func (r *User) Create(
 		INSERT INTO users (
 			username, 
 			email, 
+			first_name,
+			last_name,
 			password_hash,
 			avatar, 
 			auth_type, 
@@ -35,7 +37,7 @@ func (r *User) Create(
 			created_at, 
 			updated_at
 		)
-		VALUES (:username, :email, :password_hash, :avatar, :auth_type, :auth_id, :telegram_id, :is_active, :created_at, :updated_at)
+		VALUES (:username, :email, :first_name, :last_name, :password_hash, :avatar, :auth_type, :auth_id, :telegram_id, :is_active, :created_at, :updated_at)
 		RETURNING id
 	`
 	rows, err := r.db.GetDB().NamedQueryContext(ctx, query, user)
@@ -58,7 +60,7 @@ func (r *User) GetByID(
 	id uuid.UUID,
 ) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		SELECT id, username, email, first_name, last_name, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
 		FROM users WHERE id = $1
 	`
 	var user entities.User
@@ -76,7 +78,7 @@ func (r *User) GetByAuthID(
 	authType entities.AuthType,
 ) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		SELECT id, username, email, first_name, last_name, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
 		FROM users 
 		WHERE auth_id = $1 AND auth_type = $2
 	`
@@ -97,6 +99,8 @@ func (r *User) Update(
 		UPDATE users SET 
 		username = :username, 
 		email = :email, 
+		first_name = :first_name,
+		last_name = :last_name,
 		password_hash = :password_hash,
 		avatar = :avatar, 
 		telegram_id = :telegram_id,
@@ -117,7 +121,7 @@ func (r *User) GetByEmail(
 	email string,
 ) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		SELECT id, username, email, first_name, last_name, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
 		FROM users WHERE email = $1 AND is_active = true
 	`
 	var user entities.User
@@ -129,12 +133,29 @@ func (r *User) GetByEmail(
 	return &user, nil
 }
 
+func (r *User) GetByUsername(
+	ctx context.Context,
+	username string,
+) (*entities.User, error) {
+	query := `
+		SELECT id, username, email, first_name, last_name, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		FROM users WHERE username = $1 AND is_active = true
+	`
+	var user entities.User
+	err := r.db.GetDB().GetContext(ctx, &user, query, username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
+	}
+
+	return &user, nil
+}
+
 func (r *User) GetByTelegramID(
 	ctx context.Context,
 	telegramID int64,
 ) (*entities.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
+		SELECT id, username, email, first_name, last_name, password_hash, avatar, auth_type, auth_id, telegram_id, is_active, email_verified, verification_token, created_at, updated_at 
 		FROM users WHERE telegram_id = $1 AND is_active = true
 	`
 	var user entities.User
@@ -144,6 +165,24 @@ func (r *User) GetByTelegramID(
 	}
 
 	return &user, nil
+}
+
+func (r *User) UpdateAvatar(
+	ctx context.Context,
+	userID uuid.UUID,
+	avatar string,
+) error {
+	query := `
+		UPDATE users 
+		SET avatar = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+	_, err := r.db.GetDB().ExecContext(ctx, query, avatar, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update avatar: %w", err)
+	}
+
+	return nil
 }
 
 func (r *User) LinkTelegram(
@@ -160,4 +199,17 @@ func (r *User) LinkTelegram(
 	}
 
 	return nil
+}
+
+func (r *User) GetTotalCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*) FROM users WHERE is_active = true
+	`
+	var count int
+	err := r.db.GetDB().GetContext(ctx, &count, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total user count: %w", err)
+	}
+
+	return count, nil
 }

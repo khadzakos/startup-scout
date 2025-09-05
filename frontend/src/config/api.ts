@@ -25,4 +25,8 @@ export const API_ENDPOINTS = {
   // User
   PROFILE: '/profile',
   VOTES: '/votes',
+  
+  // Images
+  IMAGE_UPLOAD: '/images/upload',
+  IMAGE: (filename: string) => `/images/${filename}`,
 } as const; 

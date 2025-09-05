@@ -1,43 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { EmailLogin } from '../components/EmailLogin';
 import { EmailRegister } from '../components/EmailRegister';
-import { ENV_CONFIG } from '../config/env';
-import { AuthType } from '../types';
 
 export const LoginPage: React.FC = () => {
   const { user, loading, error } = useAuth();
-  const [authLoading, setAuthLoading] = useState<AuthType | null>(null);
   const [isLogin, setIsLogin] = useState(true);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   if (user) {
     return <Navigate to="/" replace />;
   }
 
-  const handleYandexLogin = async () => {
-    setAuthLoading('yandex');
-    try {
-      // Для Yandex получаем код из URL
-      const code = searchParams.get('code');
-      if (code) {
-        // Обработка Yandex callback
-        // TODO: Добавить обработку Yandex авторизации
-        console.log('Yandex code received:', code);
-      } else {
-        // Если кода нет, перенаправляем на Yandex OAuth
-        const yandexAuthUrl = `https://oauth.yandex.ru/authorize?response_type=code&client_id=${ENV_CONFIG.YANDEX_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`;
-        window.location.href = yandexAuthUrl;
-      }
-    } catch (error) {
-      console.error('Yandex login failed:', error);
-    } finally {
-      setAuthLoading(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -79,31 +54,6 @@ export const LoginPage: React.FC = () => {
               <EmailRegister onSwitchToLogin={() => setIsLogin(true)} />
             )}
 
-            {/* Разделитель */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">или</span>
-              </div>
-            </div>
-
-            {/* Yandex Login */}
-            <button
-              onClick={handleYandexLogin}
-              disabled={authLoading !== null}
-              className="w-full flex justify-center items-center space-x-3 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
-            >
-              {authLoading === 'yandex' ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <span className="w-5 h-5 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                  Y
-                </span>
-              )}
-              <span>Войти через Яндекс</span>
-            </button>
           </div>
 
           <div className="mt-6">

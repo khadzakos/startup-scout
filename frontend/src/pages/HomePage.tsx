@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ProjectCard } from '../components/ProjectCard';
 import { useProjects } from '../hooks/useProjects';
 import { useAuth } from '../hooks/useAuth';
+import { useStats } from '../hooks/useStats';
 import { Loader2, TrendingUp, Users, Calendar } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { projects, loading, error, fetchProjects, updateProjectVotes } = useProjects();
   const { user } = useAuth();
+  const { stats, loading: statsLoading } = useStats();
   const navigate = useNavigate();
 
   const handleVoteSuccess = (projectId: string, upvotes: number) => {
@@ -109,8 +111,13 @@ export const HomePage: React.FC = () => {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-green-600" />
             </div>
-            {/* TODO: add number of participants */}
-            <h3 className="text-2xl font-bold text-secondary-900 mb-2">1,234</h3>
+            <h3 className="text-2xl font-bold text-secondary-900 mb-2">
+              {statsLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+              ) : (
+                stats?.user_count?.toLocaleString() || '0'
+              )}
+            </h3>
             <p className="text-secondary-600">Участников</p>
           </div>
           <div className="text-center">

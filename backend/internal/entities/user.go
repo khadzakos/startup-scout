@@ -11,6 +11,8 @@ type User struct {
 	ID                uuid.UUID      `json:"id" db:"id"`
 	Username          string         `json:"username" db:"username"`
 	Email             string         `json:"email" db:"email"`
+	FirstName         string         `json:"first_name" db:"first_name"`
+	LastName          string         `json:"last_name" db:"last_name"`
 	PasswordHash      string         `json:"-" db:"password_hash"`
 	Avatar            string         `json:"avatar" db:"avatar"`
 	AuthType          AuthType       `json:"auth_type" db:"auth_type"`
@@ -28,5 +30,4 @@ type AuthType string
 const (
 	AuthTypeEmail    AuthType = "email"
 	AuthTypeTelegram AuthType = "telegram"
-	AuthTypeYandex   AuthType = "yandex"
 )

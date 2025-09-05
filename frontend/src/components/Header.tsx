@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { TrendingUp, LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { Avatar } from './Avatar';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
@@ -78,10 +79,11 @@ export const Header: React.FC = () => {
                   to="/profile"
                   className="flex items-center space-x-3 text-secondary-700 hover:text-secondary-900 transition-colors p-2 rounded-xl hover:bg-secondary-50"
                 >
-                  <img 
+                  <Avatar 
                     src={user.avatar} 
                     alt={user.username}
-                    className="w-10 h-10 rounded-xl object-cover ring-2 ring-primary-100 shadow-md"
+                    size="md"
+                    className="ring-2 ring-primary-100 shadow-md"
                   />
                   <span className="hidden sm:block text-sm font-semibold">{user.username}</span>
                 </Link>

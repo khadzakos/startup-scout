@@ -11,6 +11,7 @@ type Project struct {
 	Name            string      `json:"name" db:"name"`
 	Description     string      `json:"description" db:"description"`
 	FullDescription string      `json:"full_description" db:"full_description"`
+	Logo            *string     `json:"logo" db:"logo"`
 	Images          StringArray `json:"images" db:"images"`
 	Creators        StringArray `json:"creators" db:"creators"`
 	TelegramContact string      `json:"telegram_contact" db:"telegram_contact"`

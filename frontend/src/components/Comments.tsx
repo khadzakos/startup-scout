@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useComments } from '../hooks/useComments';
 import { useAuth } from '../hooks/useAuth';
-import { Comment, Project } from '../types';
+import { CommentWithUser, Project } from '../types';
 import { VotingButtons } from './VotingButtons';
+import { Avatar } from './Avatar';
 
 interface CommentsProps {
   projectId: string;
@@ -37,8 +38,16 @@ const Comments: React.FC<CommentsProps> = ({ projectId, project }) => {
   };
 
   // Проверяем, принадлежит ли комментарий текущему пользователю
-  const canEditComment = (comment: Comment): boolean => {
+  const canEditComment = (comment: CommentWithUser): boolean => {
     return Boolean(user && comment.user_id === user.id);
+  };
+
+  // Получаем отображаемое имя пользователя
+  const getUserDisplayName = (comment: CommentWithUser): string => {
+    if (comment.first_name && comment.last_name) {
+      return `${comment.first_name} ${comment.last_name}`;
+    }
+    return comment.username;
   };
 
   const formatDate = (dateString: string) => {
@@ -116,13 +125,21 @@ const Comments: React.FC<CommentsProps> = ({ projectId, project }) => {
           comments.map((comment) => (
             <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-600">
-                      {comment.user_id.slice(0, 8)}...
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    src={comment.avatar}
+                    alt={getUserDisplayName(comment)}
+                    size="sm"
+                    className="ring-2 ring-gray-100"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {getUserDisplayName(comment)}
                     </span>
+                    {comment.first_name && comment.last_name && (
+                      <span className="text-xs text-gray-500 ml-2">@{comment.username}</span>
+                    )}
                   </div>
-                  <span className="text-sm text-gray-600">Пользователь {comment.user_id.slice(0, 8)}...</span>
                 </div>
                 <span className="text-xs text-gray-500">
                   {formatDate(comment.created_at)}

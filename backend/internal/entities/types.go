@@ -60,9 +60,12 @@ func (sa *StringArray) Scan(value interface{}) error {
 		result := make([]string, len(parts))
 		for i, part := range parts {
 			part = strings.TrimSpace(part)
-			// Remove quotes if present
-			if len(part) >= 2 && part[0] == '"' && part[len(part)-1] == '"' {
-				part = part[1 : len(part)-1]
+			// Remove quotes if present (both single and double quotes)
+			if len(part) >= 2 {
+				if (part[0] == '"' && part[len(part)-1] == '"') ||
+					(part[0] == '\'' && part[len(part)-1] == '\'') {
+					part = part[1 : len(part)-1]
+				}
 			}
 			result[i] = part
 		}

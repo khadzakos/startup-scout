@@ -139,7 +139,7 @@ export const EmailRegister: React.FC<EmailRegisterProps> = ({ onSwitchToLogin })
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="text-blue-600 hover:text-blue-500 text-sm"
+            className="text-orange-600 hover:text-orange-500 text-sm"
           >
             Уже есть аккаунт? Войти
           </button>

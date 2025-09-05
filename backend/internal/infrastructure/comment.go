@@ -69,6 +69,28 @@ func (r *Comment) GetByProjectID(
 	return comments, nil
 }
 
+func (r *Comment) GetByProjectIDWithUsers(
+	ctx context.Context,
+	projectID uuid.UUID,
+) ([]*entities.CommentWithUser, error) {
+	query := `
+		SELECT 
+			c.id, c.user_id, c.project_id, c.content, c.created_at, c.updated_at,
+			u.username, u.first_name, u.last_name, u.avatar
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.project_id = $1
+		ORDER BY c.created_at DESC
+	`
+	var comments []*entities.CommentWithUser
+	err := r.db.GetDB().SelectContext(ctx, &comments, query, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comments with users by project id: %w", err)
+	}
+
+	return comments, nil
+}
+
 func (r *Comment) Update(
 	ctx context.Context,
 	comment *entities.Comment,

@@ -3,7 +3,11 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 	"startup-scout/internal/entities"
+	"startup-scout/internal/errors"
+	"startup-scout/internal/repository"
 	"startup-scout/internal/services"
 	"time"
 
@@ -17,6 +21,8 @@ type Handlers struct {
 	projectService *services.ProjectService
 	authService    *services.AuthService
 	commentService *services.CommentService
+	imageService   *services.ImageService
+	userRepo       repository.UserRepository
 	logger         *zap.Logger
 	jwtAuth        *jwtauth.JWTAuth
 }
@@ -25,6 +31,8 @@ func NewHandlers(
 	projectService *services.ProjectService,
 	authService *services.AuthService,
 	commentService *services.CommentService,
+	imageService *services.ImageService,
+	userRepo repository.UserRepository,
 	logger *zap.Logger,
 	jwtAuth *jwtauth.JWTAuth,
 ) *Handlers {
@@ -32,6 +40,8 @@ func NewHandlers(
 		projectService: projectService,
 		authService:    authService,
 		commentService: commentService,
+		imageService:   imageService,
+		userRepo:       userRepo,
 		logger:         logger,
 		jwtAuth:        jwtAuth,
 	}
@@ -162,36 +172,6 @@ func (h *Handlers) RemoveVote(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
-func (h *Handlers) AuthYandex(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	if code == "" {
-		http.Error(w, "Authorization code is required", http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.authService.AuthenticateYandex(r.Context(), code)
-	if err != nil {
-		h.logger.Error("failed to authenticate yandex", zap.Error(err))
-		http.Error(w, "Authentication failed", http.StatusUnauthorized)
-		return
-	}
-
-	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
-	if err != nil {
-		h.logger.Error("failed to create JWT token", zap.Error(err))
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": tokenString,
-		"user":  user,
-	})
-}
-
 // Email регистрация
 func (h *Handlers) RegisterEmail(w http.ResponseWriter, r *http.Request) {
 	var request struct {
@@ -208,7 +188,23 @@ func (h *Handlers) RegisterEmail(w http.ResponseWriter, r *http.Request) {
 	user, err := h.authService.RegisterEmail(r.Context(), request.Email, request.Username, request.Password)
 	if err != nil {
 		h.logger.Error("failed to register user", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		var errorMessage string
+		var statusCode int
+
+		switch err {
+		case errors.ErrEmailExists:
+			errorMessage = "Пользователь с таким email уже существует"
+			statusCode = http.StatusConflict
+		case errors.ErrUsernameExists:
+			errorMessage = "Пользователь с таким именем уже существует"
+			statusCode = http.StatusConflict
+		default:
+			errorMessage = "Ошибка регистрации"
+			statusCode = http.StatusInternalServerError
+		}
+
+		http.Error(w, errorMessage, statusCode)
 		return
 	}
 
@@ -243,7 +239,23 @@ func (h *Handlers) AuthEmail(w http.ResponseWriter, r *http.Request) {
 	user, err := h.authService.AuthenticateEmail(r.Context(), request.Email, request.Password)
 	if err != nil {
 		h.logger.Error("failed to authenticate email", zap.Error(err))
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+
+		var errorMessage string
+		var statusCode int
+
+		switch err {
+		case errors.ErrUserNotFound:
+			errorMessage = "Пользователь с таким email не найден"
+			statusCode = http.StatusNotFound
+		case errors.ErrInvalidPassword:
+			errorMessage = "Неверный пароль"
+			statusCode = http.StatusUnauthorized
+		default:
+			errorMessage = "Ошибка аутентификации"
+			statusCode = http.StatusInternalServerError
+		}
+
+		http.Error(w, errorMessage, statusCode)
 		return
 	}
 
@@ -346,7 +358,7 @@ func (h *Handlers) GetProjectComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.commentService.GetProjectComments(r.Context(), projectID)
+	comments, err := h.commentService.GetProjectCommentsWithUsers(r.Context(), projectID)
 	if err != nil {
 		h.logger.Error("failed to get project comments", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -354,7 +366,7 @@ func (h *Handlers) GetProjectComments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if comments == nil {
-		comments = []*entities.Comment{}
+		comments = []*entities.CommentWithUser{}
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -448,4 +460,270 @@ func (h *Handlers) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+// GetStats возвращает общую статистику сайта
+func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
+	// Получаем количество активных пользователей
+	userCount, err := h.userRepo.GetTotalCount(r.Context())
+	if err != nil {
+		h.logger.Error("failed to get user count", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Получаем количество активных проектов
+	projects, err := h.projectService.GetActiveLaunchProjects(r.Context())
+	if err != nil {
+		h.logger.Error("failed to get projects for stats", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	projectCount := 0
+	if projects != nil {
+		projectCount = len(projects)
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_count":    userCount,
+		"project_count": projectCount,
+	})
+}
+
+// Image handlers
+func (h *Handlers) UploadImage(w http.ResponseWriter, r *http.Request) {
+	// Проверяем аутентификацию
+	_, claims, err := jwtauth.FromContext(r.Context())
+	if err != nil {
+		h.logger.Error("failed to get JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		h.logger.Error("user_id not found in JWT claims")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		h.logger.Error("invalid user_id in JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Парсим multipart form
+	err = r.ParseMultipartForm(32 << 20) // 32 MB max
+	if err != nil {
+		h.logger.Error("failed to parse multipart form", zap.Error(err))
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("image")
+	if err != nil {
+		h.logger.Error("failed to get uploaded file", zap.Error(err))
+		http.Error(w, "No image file provided", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Загружаем изображение
+	fileName, err := h.imageService.UploadImage(fileHeader)
+	if err != nil {
+		h.logger.Error("failed to upload image", zap.Error(err))
+		http.Error(w, "Failed to upload image", http.StatusInternalServerError)
+		return
+	}
+
+	// Возвращаем URL изображения
+	imageURL := h.imageService.GetImageURL(fileName)
+
+	h.logger.Info("image uploaded successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("file_name", fileName),
+		zap.String("image_url", imageURL))
+
+	// Устанавливаем Content-Type и записываем JSON ответ
+	response := map[string]interface{}{
+		"success":   true,
+		"file_name": fileName,
+		"image_url": imageURL,
+	}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		h.logger.Error("failed to marshal response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+func (h *Handlers) GetImage(w http.ResponseWriter, r *http.Request) {
+	fileName := chi.URLParam(r, "filename")
+	h.logger.Info("GetImage called", zap.String("filename", fileName), zap.String("method", r.Method))
+
+	if fileName == "" {
+		h.logger.Error("Filename is empty")
+		http.Error(w, "Filename is required", http.StatusBadRequest)
+		return
+	}
+
+	// Проверяем, что файл существует (для безопасности)
+	filePath := filepath.Join(h.imageService.GetConfig().LocalPath, fileName)
+	h.logger.Info("Looking for file", zap.String("file_path", filePath))
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		h.logger.Error("File not found", zap.String("file_path", filePath), zap.Error(err))
+		http.Error(w, "Image not found", http.StatusNotFound)
+		return
+	}
+
+	h.logger.Info("Serving file", zap.String("file_path", filePath))
+	// Отдаем файл
+	http.ServeFile(w, r, filePath)
+}
+
+// UpdateAvatar обновляет аватарку пользователя
+func (h *Handlers) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
+	// Проверяем аутентификацию
+	_, claims, err := jwtauth.FromContext(r.Context())
+	if err != nil {
+		h.logger.Error("failed to get JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		h.logger.Error("user_id not found in JWT claims")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		h.logger.Error("invalid user_id in JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Парсим JSON запрос
+	var request struct {
+		Avatar string `json:"avatar"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("failed to decode request", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Avatar == "" {
+		http.Error(w, "Avatar URL is required", http.StatusBadRequest)
+		return
+	}
+
+	// Обновляем аватарку пользователя
+	err = h.userRepo.UpdateAvatar(r.Context(), userID, request.Avatar)
+	if err != nil {
+		h.logger.Error("failed to update avatar", zap.Error(err))
+		http.Error(w, "Failed to update avatar", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("avatar updated successfully", zap.String("user_id", userID.String()))
+
+	// Возвращаем успешный ответ
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Avatar updated successfully",
+		"avatar":  request.Avatar,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateProfile обновляет профиль пользователя
+func (h *Handlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	// Проверяем аутентификацию
+	_, claims, err := jwtauth.FromContext(r.Context())
+	if err != nil {
+		h.logger.Error("failed to get JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		h.logger.Error("user_id not found in JWT claims")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		h.logger.Error("invalid user_id in JWT claims", zap.Error(err))
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Парсим JSON запрос
+	var request struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Username  string `json:"username"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("failed to decode request", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Получаем текущего пользователя
+	user, err := h.userRepo.GetByID(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("failed to get user", zap.Error(err))
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Обновляем поля
+	if request.FirstName != "" {
+		user.FirstName = request.FirstName
+	}
+	if request.LastName != "" {
+		user.LastName = request.LastName
+	}
+	if request.Username != "" {
+		user.Username = request.Username
+	}
+
+	// Сохраняем изменения
+	err = h.userRepo.Update(r.Context(), user)
+	if err != nil {
+		h.logger.Error("failed to update profile", zap.Error(err))
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	h.logger.Info("profile updated successfully", zap.String("user_id", userID.String()))
+
+	// Возвращаем обновленного пользователя
+	response := map[string]interface{}{
+		"success": true,
+		"message": "Profile updated successfully",
+		"user":    user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

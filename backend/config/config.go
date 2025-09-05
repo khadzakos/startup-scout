@@ -15,6 +15,7 @@ type Config struct {
 	Redis    RedisConfig
 	Auth     AuthConfig
 	Logger   LoggerConfig
+	Storage  StorageConfig
 }
 
 type ServerConfig struct {
@@ -40,15 +41,21 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	TelegramBotToken   string
-	YandexClientID     string
-	YandexClientSecret string
-	JWTSecret          string
-	SessionDuration    time.Duration
+	TelegramBotToken string
+	JWTSecret        string
+	SessionDuration  time.Duration
 }
 
 type LoggerConfig struct {
 	Level string
+}
+
+type StorageConfig struct {
+	Type         string // "local" or "s3"
+	LocalPath    string
+	MaxFileSize  int64 // in bytes
+	AllowedTypes []string
+	BaseURL      string
 }
 
 func Load() *Config {
@@ -79,14 +86,19 @@ func Load() *Config {
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		Auth: AuthConfig{
-			TelegramBotToken:   getEnv("TELEGRAM_BOT_TOKEN", ""),
-			YandexClientID:     getEnv("YANDEX_CLIENT_ID", ""),
-			YandexClientSecret: getEnv("YANDEX_CLIENT_SECRET", ""),
-			JWTSecret:          getEnv("JWT_SECRET", "your-secret-key"),
-			SessionDuration:    getDurationEnv("SESSION_DURATION", 24*time.Hour),
+			TelegramBotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+			JWTSecret:        getEnv("JWT_SECRET", "your-secret-key"),
+			SessionDuration:  getDurationEnv("SESSION_DURATION", 24*time.Hour),
 		},
 		Logger: LoggerConfig{
 			Level: getEnv("LOG_LEVEL", "info"),
+		},
+		Storage: StorageConfig{
+			Type:         getEnv("STORAGE_TYPE", "local"),
+			LocalPath:    getEnv("STORAGE_LOCAL_PATH", "./uploads"),
+			MaxFileSize:  getInt64Env("STORAGE_MAX_FILE_SIZE", 10*1024*1024), // 10MB
+			AllowedTypes: []string{"image/jpeg", "image/png", "image/gif", "image/webp"},
+			BaseURL:      getEnv("STORAGE_BASE_URL", "http://localhost:8080/images"),
 		},
 	}
 }
@@ -111,6 +123,15 @@ func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if duration, err := time.ParseDuration(value); err == nil {
 			return duration
+		}
+	}
+	return defaultValue
+}
+
+func getInt64Env(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return intValue
 		}
 	}
 	return defaultValue

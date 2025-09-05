@@ -40,6 +40,10 @@ func (s *CommentService) GetProjectComments(ctx context.Context, projectID uuid.
 	return s.commentRepo.GetByProjectID(ctx, projectID)
 }
 
+func (s *CommentService) GetProjectCommentsWithUsers(ctx context.Context, projectID uuid.UUID) ([]*entities.CommentWithUser, error) {
+	return s.commentRepo.GetByProjectIDWithUsers(ctx, projectID)
+}
+
 func (s *CommentService) UpdateComment(ctx context.Context, commentID, userID uuid.UUID, content string) error {
 	// Получаем комментарий для проверки принадлежности
 	comment, err := s.commentRepo.GetByID(ctx, commentID)

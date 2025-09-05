@@ -24,6 +24,7 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 			name, 
 			description, 
 			full_description, 
+			logo,
 			images, 
 			creators, 
 			telegram_contact, 
@@ -33,7 +34,7 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id
 	`
 
@@ -42,6 +43,7 @@ func (r *Project) Create(ctx context.Context, project *entities.Project) error {
 		project.Name,
 		project.Description,
 		project.FullDescription,
+		project.Logo,
 		project.Images,
 		project.Creators,
 		project.TelegramContact,

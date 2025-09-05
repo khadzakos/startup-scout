@@ -11,6 +11,7 @@ export interface Project {
 	name: string;
 	description: string;
 	full_description: string;
+	logo: string | null;
 	images: string[];
 	creators: string[];
 	telegram_contact: string;
@@ -27,6 +28,7 @@ export interface ProjectCreateRequest {
   name: string;
   description: string;
   full_description: string;
+  logo: string | null;
   images: string[];
   creators: string[];
   telegram_contact: string;
@@ -53,13 +55,15 @@ export interface User {
 	id: string; // UUID
 	username: string;
 	email: string;
+	first_name: string;
+	last_name: string;
 	avatar: string;
 	auth_type: string;
 	created_at: string;
 	updated_at: string;
 }
 
-export type AuthType = 'email' | 'yandex';
+export type AuthType = 'email';
 
 // Vote types (только лайки)
 export interface Vote {
@@ -85,8 +89,22 @@ export interface Comment {
 	updated_at: string;
 }
 
+export interface CommentWithUser {
+	id: string; // UUID
+	project_id: string; // UUID
+	user_id: string; // UUID
+	content: string;
+	created_at: string;
+	updated_at: string;
+	// Информация о пользователе
+	username: string;
+	first_name: string;
+	last_name: string;
+	avatar: string;
+}
+
 export interface CommentsResponse {
-	comments: Comment[];
+	comments: CommentWithUser[];
 }
 
 // Auth types
@@ -103,6 +121,12 @@ export interface ProfileResponse {
 
 export interface VotesResponse {
 	votes: Vote[];
+}
+
+// Stats types
+export interface StatsResponse {
+	user_count: number;
+	project_count: number;
 }
 
 // Frontend specific types (for UI)

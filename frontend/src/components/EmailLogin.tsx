@@ -10,15 +10,18 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       await login('email', { email, password });
     } catch (error) {
       console.error('Login error:', error);
+      setError(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -32,6 +35,11 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
         </h2>
       </div>
       <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
         <div className="rounded-md shadow-sm -space-y-px">
           <div>
             <label htmlFor="email" className="sr-only">

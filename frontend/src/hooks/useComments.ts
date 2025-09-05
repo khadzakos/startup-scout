@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Comment } from '../types';
+import { CommentWithUser } from '../types';
 import { apiClient } from '../api/client';
 
 export const useComments = (projectId: string) => {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<CommentWithUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +23,8 @@ export const useComments = (projectId: string) => {
   const addComment = async (content: string) => {
     try {
       const newComment = await apiClient.createComment(projectId, content);
-      setComments(prev => [newComment, ...prev]);
+      // После создания комментария перезагружаем все комментарии, чтобы получить полную информацию о пользователе
+      await fetchComments();
       return newComment;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create comment');

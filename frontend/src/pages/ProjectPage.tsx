@@ -12,6 +12,7 @@ import { ru } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Comments } from '../components/Comments';
 import { VotingButtons } from '../components/VotingButtons';
+import { ImageGallery } from '../components/ImageGallery';
 
 export const ProjectPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,16 @@ export const ProjectPage: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-3">
+              <div className="flex items-center space-x-4 mb-3">
+                {project.logo && project.logo.trim() !== '' && (
+                  <div className="w-16 h-16 rounded-xl overflow-hidden shadow-md">
+                    <img
+                      src={project.logo}
+                      alt={`${project.name} logo`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
               </div>
               
@@ -85,6 +95,19 @@ export const ProjectPage: React.FC = () => {
 
         {/* Content */}
         <div className="p-6">
+          {/* Project Images */}
+          {project.images && project.images.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Галерея</h3>
+              <ImageGallery 
+                images={project.images} 
+                className="max-h-96"
+                showThumbnails={true}
+                maxThumbnails={4}
+              />
+            </div>
+          )}
+
           <div className="prose max-w-none mb-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">О проекте</h3>
             <p className="text-gray-700 leading-relaxed">
@@ -138,22 +161,6 @@ export const ProjectPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Images */}
-          {project.images.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Галерея</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {project.images.map((image, index) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt={`${project.name} - изображение ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Comments */}
           <Comments projectId={project.id} project={project} />

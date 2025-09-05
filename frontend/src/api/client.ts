@@ -1,15 +1,14 @@
 import { 
-  User, 
   Project, 
   VoteResponse, 
   Comment, 
-  Launch, 
   ProfileResponse, 
   VotesResponse,
   CommentsResponse,
   ProjectCreateRequest,
   ProjectsResponse,
-  AuthResponse
+  AuthResponse,
+  StatsResponse
 } from '../types';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 
@@ -57,17 +56,32 @@ class ApiClient {
       console.log('API: Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API: Error response:', errorData);
+        // Try to get error message from response body
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        } catch (e) {
+          // If we can't read the response body, use the default message
+          console.warn('Could not read error response body:', e);
+        }
+        
+        console.error('API: Error response:', { status: response.status, message: errorMessage });
         
         // Handle 401 Unauthorized specifically
         if (response.status === 401) {
-          // Emit a custom event for authentication failure
-          window.dispatchEvent(new CustomEvent('auth:expired'));
-          throw new Error('Authentication expired. Please log in again.');
+          // Only emit auth:expired for authenticated endpoints, not for login/register
+          const isAuthEndpoint = endpoint.includes('/auth/email/login') || endpoint.includes('/auth/email/register');
+          if (!isAuthEndpoint) {
+            // Emit a custom event for authentication failure
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+            throw new Error('Authentication expired. Please log in again.');
+          }
         }
         
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -148,9 +162,6 @@ class ApiClient {
     });
   }
 
-  async authYandex(code: string): Promise<AuthResponse> {
-    return this.request<AuthResponse>(`${API_ENDPOINTS.AUTH_YANDEX}?code=${code}`);
-  }
 
   async linkTelegram(params: Record<string, string>): Promise<{ status: string }> {
     return this.request<{ status: string }>(API_ENDPOINTS.AUTH_TELEGRAM_LINK, {
@@ -162,6 +173,20 @@ class ApiClient {
   // Profile
   async getProfile(): Promise<ProfileResponse> {
     return this.request<ProfileResponse>(API_ENDPOINTS.PROFILE);
+  }
+
+  async updateProfile(profileData: { first_name?: string; last_name?: string; username?: string }): Promise<{ success: boolean; message: string; user: any }> {
+    return this.request<{ success: boolean; message: string; user: any }>('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async updateAvatar(avatarUrl: string): Promise<{ success: boolean; message: string; avatar: string }> {
+    return this.request<{ success: boolean; message: string; avatar: string }>('/profile/avatar', {
+      method: 'PUT',
+      body: JSON.stringify({ avatar: avatarUrl }),
+    });
   }
 
   // Comments
@@ -190,6 +215,45 @@ class ApiClient {
     await this.request(API_ENDPOINTS.COMMENT(commentId), {
       method: 'DELETE',
     });
+  }
+
+  // Images
+  async uploadImage(file: File): Promise<{ image_url: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const url = `${this.baseURL}${API_ENDPOINTS.IMAGE_UPLOAD}`;
+    
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          errorMessage = errorText;
+        }
+      } catch (e) {
+        console.warn('Could not read error response body:', e);
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  // Stats
+  async getStats(): Promise<StatsResponse> {
+    return this.request<StatsResponse>('/stats');
   }
 }
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, MessageCircle } from 'lucide-react';
 import { Project } from '../types';
 import { VotingButtons } from './VotingButtons';
+import { Avatar } from './Avatar';
 
 interface ProjectCardProps {
   project: Project;
@@ -20,28 +21,46 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, rank, onVoteS
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-secondary-200 p-8 hover:shadow-xl transition-all duration-300 hover:border-primary-300 group">
       <div className="flex items-start space-x-6">
-        {/* Rank Badge */}
+        {/* Logo or Rank Badge */}
         <div className="flex-shrink-0">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-            <span className="text-xl font-bold text-white">#{rank}</span>
-          </div>
+          {project.logo && project.logo.trim() !== '' ? (
+            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <img
+                src={project.logo}
+                alt={`${project.name} logo`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <span className="text-xl font-bold text-white">#{rank}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
           {/* Project Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <Link 
-                to={`/project/${project.id}`}
-                className="text-2xl font-bold text-secondary-900 hover:text-primary-600 transition-colors group-hover:text-primary-600"
-              >
-                {project.name}
-              </Link>
-              <p className="text-secondary-600 text-lg mt-2 line-clamp-2">
+              <div className="flex items-center space-x-3 mb-2">
+                <Link 
+                  to={`/project/${project.id}`}
+                  className="text-2xl font-bold text-secondary-900 hover:text-primary-600 transition-colors group-hover:text-primary-600"
+                >
+                  {project.name}
+                </Link>
+                {project.logo && project.logo.trim() !== '' && (
+                  <div className="bg-gradient-to-br from-primary-500 to-accent-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    #{rank}
+                  </div>
+                )}
+              </div>
+              <p className="text-secondary-600 text-lg line-clamp-2">
                 {project.description}
               </p>
             </div>
           </div>
+
 
           {/* Creators and Links */}
           <div className="flex items-center justify-between mb-6">
@@ -50,14 +69,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, rank, onVoteS
                 {project.creators.slice(0, 3).map((creator, index) => (
                   <div
                     key={index}
-                    className={`w-8 h-8 rounded-full bg-gradient-to-br from-accent-400 to-accent-500 border-2 border-white flex items-center justify-center shadow-md ${
-                      index > 0 ? '-ml-2' : ''
-                    }`}
+                    className={`${index > 0 ? '-ml-2' : ''}`}
                     title={creator}
                   >
-                    <span className="text-sm font-semibold text-white">
-                      {creator.charAt(0).toUpperCase()}
-                    </span>
+                    <Avatar
+                      alt={creator}
+                      size="sm"
+                      className="border-2 border-white shadow-md"
+                    />
                   </div>
                 ))}
                 {project.creators.length > 3 && (

@@ -12,9 +12,12 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.User, error)
 	GetByAuthID(ctx context.Context, authID string, authType entities.AuthType) (*entities.User, error)
 	GetByEmail(ctx context.Context, email string) (*entities.User, error)
+	GetByUsername(ctx context.Context, username string) (*entities.User, error)
 	GetByTelegramID(ctx context.Context, telegramID int64) (*entities.User, error)
 	Update(ctx context.Context, user *entities.User) error
+	UpdateAvatar(ctx context.Context, userID uuid.UUID, avatar string) error
 	LinkTelegram(ctx context.Context, userID uuid.UUID, telegramID int64) error
+	GetTotalCount(ctx context.Context) (int, error)
 }
 
 type ProjectRepository interface {
@@ -50,6 +53,7 @@ type CommentRepository interface {
 	Create(ctx context.Context, comment *entities.Comment) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Comment, error)
 	GetByProjectID(ctx context.Context, projectID uuid.UUID) ([]*entities.Comment, error)
+	GetByProjectIDWithUsers(ctx context.Context, projectID uuid.UUID) ([]*entities.CommentWithUser, error)
 	Update(ctx context.Context, comment *entities.Comment) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }

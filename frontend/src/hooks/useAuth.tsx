@@ -4,9 +4,11 @@ import { User, AuthType } from '../types';
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (provider: AuthType, params?: Record<string, string>) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: User) => void;
   loading: boolean;
   error: string | null;
 }
@@ -23,15 +25,16 @@ export const useAuth = () => {
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Загружаем токен и пользователя из localStorage
-    const token = localStorage.getItem('token');
+    const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     
-    if (token && savedUser) {
+    if (savedToken && savedUser) {
       const tokenAge = Date.now() - new Date(JSON.parse(savedUser).created_at).getTime();
       const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       
@@ -42,9 +45,11 @@ export const useAuthState = () => {
         localStorage.removeItem('user');
         apiClient.setToken(null);
         setUser(null);
+        setToken(null);
       } else {
-        apiClient.setToken(token);
+        apiClient.setToken(savedToken);
         setUser(JSON.parse(savedUser));
+        setToken(savedToken);
       }
     }
     
@@ -59,8 +64,6 @@ export const useAuthState = () => {
       let response;
       if (provider === 'email' && params?.email && params?.password) {
         response = await apiClient.loginEmail(params.email, params.password);
-      } else if (provider === 'yandex' && params?.code) {
-        response = await apiClient.authYandex(params.code);
       } else {
         throw new Error('Invalid authentication parameters');
       }
@@ -76,6 +79,7 @@ export const useAuthState = () => {
       
       apiClient.setToken(response.token);
       setUser(response.user);
+      setToken(response.token);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       throw err;
@@ -102,6 +106,7 @@ export const useAuthState = () => {
       
       apiClient.setToken(response.token);
       setUser(response.user);
+      setToken(response.token);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       throw err;
@@ -112,10 +117,16 @@ export const useAuthState = () => {
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     setError(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     apiClient.setToken(null);
+  };
+
+  const updateUser = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   // Listen for authentication expiration events
@@ -123,8 +134,7 @@ export const useAuthState = () => {
     const handleAuthExpired = () => {
       console.log('Authentication expired, logging out user');
       logout();
-      // Redirect to login page
-      window.location.href = '/login';
+      // Don't redirect automatically - let user stay on current page
     };
 
     window.addEventListener('auth:expired', handleAuthExpired);
@@ -150,7 +160,7 @@ export const useAuthState = () => {
         if (tokenAge > maxAge) {
           console.log('Token expired during periodic check, logging out user');
           logout();
-          window.location.href = '/login';
+          // Don't redirect automatically - let user stay on current page
         }
       } catch (error) {
         console.error('Error checking token expiration:', error);
@@ -163,7 +173,7 @@ export const useAuthState = () => {
     return () => clearInterval(interval);
   }, [user]);
 
-  return { user, login, register, logout, loading, error };
+  return { user, token, login, register, logout, updateUser, loading, error };
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

@@ -49,17 +49,16 @@ func main() {
 
 	// Инициализируем сервисы
 	authService := services.NewAuthService(userRepo, services.AuthConfig{
-		TelegramBotToken:   cfg.Auth.TelegramBotToken,
-		YandexClientID:     cfg.Auth.YandexClientID,
-		YandexClientSecret: cfg.Auth.YandexClientSecret,
-		JWTSecret:          cfg.Auth.JWTSecret,
-		SessionDuration:    cfg.Auth.SessionDuration,
+		TelegramBotToken: cfg.Auth.TelegramBotToken,
+		JWTSecret:        cfg.Auth.JWTSecret,
+		SessionDuration:  cfg.Auth.SessionDuration,
 	})
 
 	projectService := services.NewProjectService(projectRepo, voteRepo, launchRepo)
 	commentService := services.NewCommentService(commentRepo)
+	imageService := services.NewImageService(&cfg.Storage)
 
-	handlers := api.NewHandlers(projectService, authService, commentService, logger, jwtAuth)
+	handlers := api.NewHandlers(projectService, authService, commentService, imageService, userRepo, logger, jwtAuth)
 
 	router := api.SetupRoutes(handlers, jwtAuth, userRepo)
 
