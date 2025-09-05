@@ -54,11 +54,21 @@ func main() {
 		SessionDuration:  cfg.Auth.SessionDuration,
 	})
 
-	projectService := services.NewProjectService(projectRepo, voteRepo, launchRepo)
+	launchService := services.NewLaunchService(launchRepo)
+	projectService := services.NewProjectService(projectRepo, voteRepo, launchRepo, launchService)
 	commentService := services.NewCommentService(commentRepo)
 	imageService := services.NewImageService(&cfg.Storage)
 
-	handlers := api.NewHandlers(projectService, authService, commentService, imageService, userRepo, logger, jwtAuth)
+	handlers := api.NewHandlers(
+		projectService,
+		authService,
+		commentService,
+		imageService,
+		launchService,
+		userRepo,
+		logger,
+		jwtAuth,
+	)
 
 	router := api.SetupRoutes(handlers, jwtAuth, userRepo)
 

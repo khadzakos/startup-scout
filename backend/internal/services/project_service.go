@@ -11,27 +11,31 @@ import (
 )
 
 type ProjectService struct {
-	projectRepo repository.ProjectRepository
-	voteRepo    repository.VoteRepository
-	launchRepo  repository.LaunchRepository
+	projectRepo   repository.ProjectRepository
+	voteRepo      repository.VoteRepository
+	launchRepo    repository.LaunchRepository
+	launchService *LaunchService
 }
 
 func NewProjectService(
 	projectRepo repository.ProjectRepository,
 	voteRepo repository.VoteRepository,
 	launchRepo repository.LaunchRepository,
+	launchService *LaunchService,
 ) *ProjectService {
 	return &ProjectService{
-		projectRepo: projectRepo,
-		voteRepo:    voteRepo,
-		launchRepo:  launchRepo,
+		projectRepo:   projectRepo,
+		voteRepo:      voteRepo,
+		launchRepo:    launchRepo,
+		launchService: launchService,
 	}
 }
 
 func (s *ProjectService) CreateProject(ctx context.Context, project *entities.Project) error {
-	activeLaunch, err := s.launchRepo.GetActive(ctx)
+	// Убеждаемся, что есть активный запуск
+	activeLaunch, err := s.launchService.EnsureActiveLaunch(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get active launch: %w", err)
+		return fmt.Errorf("failed to ensure active launch: %w", err)
 	}
 
 	project.CreatedAt = time.Now()
@@ -52,9 +56,10 @@ func (s *ProjectService) GetProjectsByLaunch(ctx context.Context, launchID uuid.
 }
 
 func (s *ProjectService) GetActiveLaunchProjects(ctx context.Context) ([]*entities.Project, error) {
-	activeLaunch, err := s.launchRepo.GetActive(ctx)
+	// Убеждаемся, что есть активный запуск
+	activeLaunch, err := s.launchService.EnsureActiveLaunch(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ensure active launch: %w", err)
 	}
 
 	projects, err := s.projectRepo.GetByLaunchIDOrderedByRating(ctx, activeLaunch.ID)

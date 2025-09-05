@@ -4,7 +4,7 @@ import { ProjectCard } from '../components/ProjectCard';
 import { useProjects } from '../hooks/useProjects';
 import { useAuth } from '../hooks/useAuth';
 import { useStats } from '../hooks/useStats';
-import { Loader2, TrendingUp, Users, Calendar } from 'lucide-react';
+import { Loader2, TrendingUp, Users } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { projects, loading, error, fetchProjects, updateProjectVotes } = useProjects();
@@ -99,7 +99,7 @@ export const HomePage: React.FC = () => {
 
       {/* Stats Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           <div className="text-center">
             <div className="w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-8 h-8 text-accent-600" />
@@ -119,14 +119,6 @@ export const HomePage: React.FC = () => {
               )}
             </h3>
             <p className="text-secondary-600">Участников</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-purple-600" />
-            </div>
-            {/* TODO: add days to end of season */}
-            <h3 className="text-2xl font-bold text-secondary-900 mb-2">7</h3>
-            <p className="text-secondary-600">Дней до конца сезона</p>
           </div>
         </div>
 

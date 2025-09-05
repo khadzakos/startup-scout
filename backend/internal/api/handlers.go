@@ -22,6 +22,7 @@ type Handlers struct {
 	authService    *services.AuthService
 	commentService *services.CommentService
 	imageService   *services.ImageService
+	launchService  *services.LaunchService
 	userRepo       repository.UserRepository
 	logger         *zap.Logger
 	jwtAuth        *jwtauth.JWTAuth
@@ -32,6 +33,7 @@ func NewHandlers(
 	authService *services.AuthService,
 	commentService *services.CommentService,
 	imageService *services.ImageService,
+	launchService *services.LaunchService,
 	userRepo repository.UserRepository,
 	logger *zap.Logger,
 	jwtAuth *jwtauth.JWTAuth,
@@ -41,6 +43,7 @@ func NewHandlers(
 		authService:    authService,
 		commentService: commentService,
 		imageService:   imageService,
+		launchService:  launchService,
 		userRepo:       userRepo,
 		logger:         logger,
 		jwtAuth:        jwtAuth,
@@ -464,6 +467,14 @@ func (h *Handlers) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 // GetStats возвращает общую статистику сайта
 func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
+	// Убеждаемся, что есть активный запуск
+	_, err := h.launchService.EnsureActiveLaunch(r.Context())
+	if err != nil {
+		h.logger.Error("failed to ensure active launch", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	// Получаем количество активных пользователей
 	userCount, err := h.userRepo.GetTotalCount(r.Context())
 	if err != nil {
