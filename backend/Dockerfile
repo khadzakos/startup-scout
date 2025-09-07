@@ -1,5 +1,7 @@
 FROM golang:1.23-alpine AS builder
 
+RUN apk add --no-cache git ca-certificates
+
 ENV GOPROXY=direct
 ENV GOSUMDB=off
 ENV CGO_ENABLED=0
