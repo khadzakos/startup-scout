@@ -12,10 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/app
 
 FROM alpine:latest
 
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/* \
-  mkdir /usr/local/share/ca-certificates/extra
-COPY .docker/other/cert_Intertrials-CA.crt /usr/local/share/ca-certificates/extra
-RUN update-ca-certificates
+RUN apk update --no-cache && apk add --no-cache ca-certificates
 
 WORKDIR /root/
 
