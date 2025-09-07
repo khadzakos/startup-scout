@@ -64,7 +64,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
-      - ./backend/testdata:/testdata
     networks:
       - startup-scout-network
 
