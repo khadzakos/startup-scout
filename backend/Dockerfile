@@ -14,9 +14,9 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/app
 
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-RUN apk update --no-cache && apk add --no-cache ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/
 
