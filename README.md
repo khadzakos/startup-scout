@@ -13,7 +13,6 @@ Platform that showcases new and innovative products, services, and tech creation
 
 - **Backend**: Go, Chi (роутер), JWT аутентификация
 - **База данных**: PostgreSQL
-- **Кеширование**: Redis
 - **Логирование**: Zap
 - **Контейнеризация**: Docker, Docker Compose
 
@@ -46,9 +45,9 @@ docker-compose up -d
 go mod tidy
 ```
 
-2. Запустите базу данных и Redis:
+2. Запустите базу данных:
 ```bash
-docker-compose up postgres redis -d
+docker-compose up postgres -d
 ```
 
 3. Запустите приложение:
@@ -90,11 +89,6 @@ DB_PASSWORD=password
 DB_NAME=startup_scout
 DB_SSLMODE=disable
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
 
 # Аутентификация
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token

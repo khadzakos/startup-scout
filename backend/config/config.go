@@ -12,7 +12,6 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	Redis    RedisConfig
 	Auth     AuthConfig
 	Logger   LoggerConfig
 	Storage  StorageConfig
@@ -31,13 +30,6 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
-}
-
-type RedisConfig struct {
-	Host     string
-	Port     string
-	Password string
-	DB       int
 }
 
 type AuthConfig struct {
@@ -78,12 +70,6 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "password"),
 			DBName:   getEnv("DB_NAME", "startup_scout"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-		Redis: RedisConfig{
-			Host:     getEnv("REDIS_HOST", "localhost"),
-			Port:     getEnv("REDIS_PORT", "6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		Auth: AuthConfig{
 			TelegramBotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),

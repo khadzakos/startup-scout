@@ -11,8 +11,6 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=password
       - DB_NAME=startup_scout
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - JWT_SECRET=your-secret-key-change-in-production
       - LOG_LEVEL=debug
       - STORAGE_TYPE=local
@@ -23,7 +21,6 @@ services:
       - uploads_data:/app/uploads
     depends_on:
       - postgres
-      - redis
     networks:
       - startup-scout-network
 
@@ -43,18 +40,9 @@ services:
     networks:
       - startup-scout-network
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - startup-scout-network
 
 volumes:
   postgres_data:
-  redis_data:
   uploads_data:
 
 networks:
