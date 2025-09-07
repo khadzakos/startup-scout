@@ -1,7 +1,7 @@
 FROM golang:1.23 AS builder
 
-ENV GOPROXY=direct
-ENV GOSUMDB=off
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
 ENV CGO_ENABLED=0
 
 WORKDIR /app
