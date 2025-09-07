@@ -16,6 +16,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     restart: always
     ports:
       - "8080:8080"
@@ -42,6 +43,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      network: host
     restart: always
     ports:
       - "3000:80"
