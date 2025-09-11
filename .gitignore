@@ -65,3 +65,11 @@ dist-ssr
 *.crt
 
 *.sh
+
+# Build files
+build/
+build-*/
+build-*
+main
+
+crontab

@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,14 +16,28 @@ type Project struct {
 	Logo            *string     `json:"logo" db:"logo"`
 	Images          StringArray `json:"images" db:"images"`
 	Creators        StringArray `json:"creators" db:"creators"`
-	TelegramContact string      `json:"telegram_contact" db:"telegram_contact"`
-	Website         string      `json:"website" db:"website"`
+	TelegramContact sql.NullString `json:"telegram_contact" db:"telegram_contact"`
+	Website         sql.NullString `json:"website" db:"website"`
 	Upvotes         int         `json:"upvotes" db:"upvotes"`
 	Rating          int         `json:"rating" db:"rating"` // equals upvotes
 	LaunchID        uuid.UUID   `json:"launch_id" db:"launch_id"`
 	UserID          uuid.UUID   `json:"user_id" db:"user_id"`
 	CreatedAt       time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at" db:"updated_at"`
+}
+
+// MarshalJSON кастомная сериализация для Project
+func (p *Project) MarshalJSON() ([]byte, error) {
+	type Alias Project
+	return json.Marshal(&struct {
+		TelegramContact string `json:"telegram_contact"`
+		Website         string `json:"website"`
+		*Alias
+	}{
+		TelegramContact: p.TelegramContact.String,
+		Website:         p.Website.String,
+		Alias:           (*Alias)(p),
+	})
 }
 
 type Launch struct {

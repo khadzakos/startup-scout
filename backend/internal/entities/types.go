@@ -19,10 +19,13 @@ func (sa StringArray) Value() (driver.Value, error) {
 		return "{}", nil
 	}
 
-	// Escape single quotes and wrap in curly braces
 	escaped := make([]string, len(sa))
 	for i, s := range sa {
-		escaped[i] = "'" + strings.ReplaceAll(s, "'", "''") + "'"
+		if strings.ContainsAny(s, " ,{}") || strings.Contains(s, "'") {
+			escaped[i] = "\"" + strings.ReplaceAll(s, "\"", "\\\"") + "\""
+		} else {
+			escaped[i] = s
+		}
 	}
 	return "{" + strings.Join(escaped, ",") + "}", nil
 }
@@ -60,11 +63,17 @@ func (sa *StringArray) Scan(value interface{}) error {
 		result := make([]string, len(parts))
 		for i, part := range parts {
 			part = strings.TrimSpace(part)
-			// Remove quotes if present (both single and double quotes)
-			if len(part) >= 2 {
+			// Remove quotes if present (both single and double quotes, including multiple quotes)
+			for len(part) >= 2 {
 				if (part[0] == '"' && part[len(part)-1] == '"') ||
 					(part[0] == '\'' && part[len(part)-1] == '\'') {
 					part = part[1 : len(part)-1]
+					// Unescape quotes
+					if part[0] == '"' && part[len(part)-1] == '"' {
+						part = strings.ReplaceAll(part, "\\\"", "\"")
+					}
+				} else {
+					break
 				}
 			}
 			result[i] = part
