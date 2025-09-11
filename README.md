@@ -38,7 +38,7 @@ cd startup-scout
 docker-compose up -d
 ```
 
-3. Приложение будет доступно по адресу: http://localhost:8080
+3. Приложение будет доступно по адресу: http://localhost:3000
 
 ### Локальная разработка
 
