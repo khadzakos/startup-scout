@@ -2,6 +2,8 @@
 
 Platform that showcases new and innovative products, services, and tech creations to a community of early adopters, entrepreneurs, investors, and tech enthusiasts
 
+<img width="1442" height="1044" alt="Screenshot 2025-09-11 at 18 52 12" src="https://github.com/user-attachments/assets/15b713e2-918a-4c01-a226-f97d65e8451e" />
+
 ## Функционал MVP
 
 1. **Витрина проектов** - обновляется каждую неделю, ранжируется по рейтингу
