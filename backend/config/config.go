@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -52,7 +53,7 @@ type StorageConfig struct {
 
 func Load() *Config {
 	if err := godotenv.Load(".env"); err != nil {
-		if err := godotenv.Load(); err != nil {
+		if os.Getenv("ENV") != "production" {
 			log.Printf("Warning: .env file not found or could not be loaded: %v", err)
 		}
 	}
@@ -73,7 +74,7 @@ func Load() *Config {
 		},
 		Auth: AuthConfig{
 			TelegramBotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
-			JWTSecret:        getEnv("JWT_SECRET", "your-secret-key"),
+			JWTSecret:        getEnv("JWT_SECRET", ""),
 			SessionDuration:  getDurationEnv("SESSION_DURATION", 24*time.Hour),
 		},
 		Logger: LoggerConfig{
@@ -121,4 +122,47 @@ func getInt64Env(key string, defaultValue int64) int64 {
 		}
 	}
 	return defaultValue
+}
+
+// LoadConfig загружает конфигурацию из YAML файла
+func LoadConfig(configPath string) (*Config, error) {
+	// Сначала загружаем переменные окружения
+	if err := godotenv.Load(".env"); err != nil {
+		if os.Getenv("ENV") != "production" {
+			log.Printf("Warning: .env file not found or could not be loaded: %v", err)
+		}
+	}
+
+	// Читаем YAML файл
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+
+	// Переменные окружения имеют приоритет над YAML конфигурацией
+	if getEnv("DB_HOST", "") != "" {
+		config.Database.Host = getEnv("DB_HOST", config.Database.Host)
+	}
+	if getEnv("DB_PORT", "") != "" {
+		config.Database.Port = getEnv("DB_PORT", config.Database.Port)
+	}
+	if getEnv("DB_USER", "") != "" {
+		config.Database.User = getEnv("DB_USER", config.Database.User)
+	}
+	if getEnv("DB_PASSWORD", "") != "" {
+		config.Database.Password = getEnv("DB_PASSWORD", config.Database.Password)
+	}
+	if getEnv("DB_NAME", "") != "" {
+		config.Database.DBName = getEnv("DB_NAME", config.Database.DBName)
+	}
+	if getEnv("DB_SSLMODE", "") != "" {
+		config.Database.SSLMode = getEnv("DB_SSLMODE", config.Database.SSLMode)
+	}
+
+	return &config, nil
 }

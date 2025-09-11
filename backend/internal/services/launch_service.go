@@ -53,6 +53,7 @@ func (s *LaunchService) EnsureActiveLaunch(ctx context.Context) (*entities.Launc
 		if time.Now().Before(activeLaunch.EndDate) {
 			return activeLaunch, nil
 		}
+		
 		// Если запуск истек, деактивируем его
 		activeLaunch.IsActive = false
 		if err := s.launchRepo.Update(ctx, activeLaunch); err != nil {

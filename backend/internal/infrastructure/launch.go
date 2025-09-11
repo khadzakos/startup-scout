@@ -24,10 +24,11 @@ func (r *Launch) Create(ctx context.Context, launch *entities.Launch) error {
 			name, 
 			start_date, 
 			end_date, 
+			is_active,
 			created_at, 
 			updated_at
 		)
-		VALUES (:name, :start_date, :end_date, :created_at, :updated_at)
+		VALUES (:name, :start_date, :end_date, :is_active, :created_at, :updated_at)
 	`
 	_, err := r.db.GetDB().NamedExecContext(ctx, query, launch)
 	if err != nil {
@@ -81,7 +82,7 @@ func (r *Launch) GetAll(ctx context.Context) ([]*entities.Launch, error) {
 
 func (r *Launch) Update(ctx context.Context, launch *entities.Launch) error {
 	query := `
-		UPDATE launches SET name = :name, start_date = :start_date, end_date = :end_date, updated_at = :updated_at
+		UPDATE launches SET name = :name, start_date = :start_date, end_date = :end_date, is_active = :is_active, updated_at = :updated_at
 		WHERE id = :id
 	`
 	_, err := r.db.GetDB().NamedExecContext(ctx, query, launch)
