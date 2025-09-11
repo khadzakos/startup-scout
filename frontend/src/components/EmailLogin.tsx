@@ -17,11 +17,24 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
     setLoading(true);
     setError(null);
 
+    // Валидация логина
+    if (!email || email.trim().length === 0) {
+      setError('Пожалуйста, введите email или имя пользователя');
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError('Пожалуйста, введите пароль');
+      setLoading(false);
+      return;
+    }
+
     try {
       await login('email', { email, password });
     } catch (error) {
       console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : 'Login failed');
+      setError(error instanceof Error ? error.message : 'Ошибка входа');
     } finally {
       setLoading(false);
     }
@@ -40,25 +53,25 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
-        <div className="rounded-md shadow-sm -space-y-px">
+        <div className="space-y-4">
           <div>
-            <label htmlFor="email" className="sr-only">
-              Email
+            <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">
+              Email или имя пользователя
             </label>
             <input
               id="email"
               name="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Email"
+              className="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-secondary-900 placeholder-secondary-500"
+              placeholder="Введите email или имя пользователя"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
-            <label htmlFor="password" className="sr-only">
+            <label htmlFor="password" className="block text-sm font-medium text-secondary-700 mb-2">
               Пароль
             </label>
             <input
@@ -67,8 +80,8 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
               type="password"
               autoComplete="current-password"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Пароль"
+              className="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all duration-200 text-secondary-900 placeholder-secondary-500"
+              placeholder="Введите ваш пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -79,13 +92,12 @@ export const EmailLogin: React.FC<EmailLoginProps> = ({ onSwitchToRegister }) =>
           <button
             type="submit"
             disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full flex justify-center items-center py-3 px-4 bg-gradient-to-r from-accent-500 to-accent-600 text-white font-semibold rounded-xl hover:from-accent-600 hover:to-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              'Войти'
-            )}
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+            ) : null}
+            {loading ? 'Вход...' : 'Войти'}
           </button>
         </div>
 

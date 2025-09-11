@@ -267,7 +267,7 @@ func (h *Handlers) AuthEmail(w http.ResponseWriter, r *http.Request) {
 
 		switch err {
 		case errors.ErrUserNotFound:
-			errorMessage = "Пользователь с таким email не найден"
+			errorMessage = "Пользователь с таким email или именем пользователя не найден"
 			statusCode = http.StatusNotFound
 		case errors.ErrInvalidPassword:
 			errorMessage = "Неверный пароль"

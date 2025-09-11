@@ -145,9 +145,19 @@ func (s *AuthService) RegisterEmail(ctx context.Context, email, username, passwo
 	return user, nil
 }
 
-func (s *AuthService) AuthenticateEmail(ctx context.Context, email, password string) (*entities.User, error) {
-	// Получаем пользователя по email
-	user, err := s.userRepo.GetByEmail(ctx, email)
+func (s *AuthService) AuthenticateEmail(ctx context.Context, login, password string) (*entities.User, error) {
+	var user *entities.User
+	var err error
+
+	// Определяем, является ли login email или username
+	if strings.Contains(login, "@") {
+		// Если содержит @, ищем по email
+		user, err = s.userRepo.GetByEmail(ctx, login)
+	} else {
+		// Иначе ищем по username
+		user, err = s.userRepo.GetByUsername(ctx, login)
+	}
+
 	if err != nil {
 		return nil, errors.ErrUserNotFound
 	}

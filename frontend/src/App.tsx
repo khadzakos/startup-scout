@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PublishPage } from './pages/PublishPage';
 import { AboutPage } from './pages/AboutPage';
+import { PromoPage } from './pages/PromoPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <main>
             <Routes>
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/promo" element={<PromoPage />} />
                   <Route path="/project/:id" element={<ProjectPage />} />
                   <Route path="/publish" element={<PublishPage />} />
                   <Route path="/about" element={<AboutPage />} />

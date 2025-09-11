@@ -23,41 +23,48 @@ export const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full animate-float"></div>
+        <div className="absolute top-40 right-20 w-16 h-16 bg-white/10 rounded-full animate-float-delayed"></div>
+        <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-white/10 rounded-full animate-float"></div>
+        <div className="absolute top-1/2 right-1/3 w-8 h-8 bg-white/10 rounded-full animate-float-delayed"></div>
+      </div>
+
+      <div className="relative sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">SS</span>
+          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-xl">
+            <span className="text-white font-bold text-2xl">SS</span>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-4xl font-bold text-secondary-900">
             Добро пожаловать!
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-lg text-secondary-600">
             Войдите, чтобы голосовать за проекты и запускать свои
           </p>
         </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-sm rounded-lg sm:px-10 border border-gray-200">
+        <div className="bg-white/80 backdrop-blur-sm py-10 px-6 shadow-2xl rounded-2xl sm:px-10 border border-white/20">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600 text-center">{error}</p>
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Email Login/Register */}
             {isLogin ? (
               <EmailLogin onSwitchToRegister={() => setIsLogin(false)} />
             ) : (
               <EmailRegister onSwitchToLogin={() => setIsLogin(true)} />
             )}
-
           </div>
 
-          <div className="mt-6">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="mt-8">
+            <p className="text-xs text-secondary-500 text-center leading-relaxed">
               Авторизуясь, вы принимаете наши условия использования и политику конфиденциальности
             </p>
           </div>
