@@ -211,19 +211,38 @@ func (h *Handlers) RegisterEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
+	// Создаем JWT с расширенным payload (включая данные пользователя)
+	claims := map[string]interface{}{
+		"user_id":   user.ID,
+		"email":     user.Email,
+		"username":  user.Username,
+		"avatar":    user.Avatar,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"exp":       time.Now().Add(24 * time.Hour).Unix(),
+	}
+	
+	_, tokenString, err := h.jwtAuth.Encode(claims)
 	if err != nil {
 		h.logger.Error("failed to create JWT token", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	// Устанавливаем HTTP-only cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true, // только для HTTPS
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   24 * 60 * 60, // 24 часа
+	})
+
+	// Возвращаем только данные пользователя (без токена)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": tokenString,
-		"user":  user,
+		"user": user,
 	})
 }
 
@@ -262,19 +281,38 @@ func (h *Handlers) AuthEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, tokenString, err := h.jwtAuth.Encode(map[string]interface{}{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-	})
+	// Создаем JWT с расширенным payload (включая данные пользователя)
+	claims := map[string]interface{}{
+		"user_id":   user.ID,
+		"email":     user.Email,
+		"username":  user.Username,
+		"avatar":    user.Avatar,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"exp":       time.Now().Add(24 * time.Hour).Unix(),
+	}
+	
+	_, tokenString, err := h.jwtAuth.Encode(claims)
 	if err != nil {
 		h.logger.Error("failed to create JWT token", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	// Устанавливаем HTTP-only cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true, // только для HTTPS
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   24 * 60 * 60, // 24 часа
+	})
+
+	// Возвращаем только данные пользователя (без токена)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": tokenString,
-		"user":  user,
+		"user": user,
 	})
 }
 
@@ -300,13 +338,29 @@ func (h *Handlers) LinkTelegram(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetProfile(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(uuid.UUID)
-
-	// TODO: Получить профиль пользователя из базы данных
-	// Пока возвращаем базовую информацию
+	// Получаем пользователя из JWT claims (кеш в JWT)
+	user := r.Context().Value("user").(*entities.User)
+	
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"user_id": userID,
-		"message": "Profile endpoint - to be implemented",
+		"user": user,
+	})
+}
+
+// Logout очищает cookie аутентификации
+func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	// Очищаем cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1, // Удаляем cookie
+	})
+	
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Logged out successfully",
 	})
 }
 

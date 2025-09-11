@@ -5,19 +5,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // If we're on HTTPS (production), use relative API path
-  if (window.location.protocol === 'https:') {
-    return '/api';
-  }
-  
-  // If we're on localhost:3000 (development), connect directly to backend
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    if (window.location.port === '3000') {
-      return 'http://127.0.0.1:8080';
-    }
-  }
-  
-  // Default fallback for other cases
+  // Always use relative API path for nginx proxy
   return '/api';
 };
 
@@ -41,6 +29,7 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_EMAIL_REGISTER: '/auth/email/register',
   AUTH_EMAIL_LOGIN: '/auth/email/login',
+  AUTH_LOGOUT: '/auth/logout',
   AUTH_YANDEX: '/auth/yandex',
   AUTH_TELEGRAM_LINK: '/auth/telegram/link',
   

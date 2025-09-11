@@ -14,14 +14,9 @@ import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 
 class ApiClient {
   private baseURL: string;
-  private token: string | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-  }
-
-  setToken(token: string | null) {
-    this.token = token;
   }
 
   private async request<T>(
@@ -37,9 +32,8 @@ class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
+    // Убираем ручную установку Authorization header
+    // Cookies будут отправляться автоматически
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
@@ -48,6 +42,7 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        credentials: 'include', // важно для отправки cookies
         signal: controller.signal,
       });
 
@@ -162,6 +157,12 @@ class ApiClient {
     });
   }
 
+  async logout(): Promise<{ message: string }> {
+    return this.request<{ message: string }>(API_ENDPOINTS.AUTH_LOGOUT, {
+      method: 'POST',
+    });
+  }
+
 
   async linkTelegram(params: Record<string, string>): Promise<{ status: string }> {
     return this.request<{ status: string }>(API_ENDPOINTS.AUTH_TELEGRAM_LINK, {
@@ -223,15 +224,10 @@ class ApiClient {
     formData.append('image', file);
     
     const url = `${this.baseURL}${API_ENDPOINTS.IMAGE_UPLOAD}`;
-    
-    const headers: Record<string, string> = {};
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
 
     const response = await fetch(url, {
       method: 'POST',
-      headers,
+      credentials: 'include', // важно для отправки cookies
       body: formData,
     });
 

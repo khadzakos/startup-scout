@@ -111,7 +111,6 @@ export interface CommentsResponse {
 export interface AuthResponse {
 	success: boolean;
 	message?: string;
-	token?: string;
 	user?: User;
 }
 
