@@ -57,52 +57,6 @@ docker-compose up postgres -d
 go run cmd/app/main.go
 ```
 
-## API Endpoints
-
-### Публичные endpoints
-
-- `GET /projects` - получить список проектов активного запуска
-- `GET /projects/{id}` - получить детали проекта
-- `GET /auth/telegram` - аутентификация через Telegram
-- `GET /auth/yandex` - аутентификация через Яндекс
-
-### Защищенные endpoints (требуют JWT токен)
-
-- `POST /projects` - создать новый проект
-- `POST /projects/{id}/vote` - проголосовать за проект
-- `GET /profile` - получить профиль пользователя
-- `GET /votes` - получить историю голосов пользователя
-
-## Конфигурация
-
-Настройки приложения задаются через переменные окружения:
-
-```bash
-# Сервер
-SERVER_PORT=8080
-SERVER_READ_TIMEOUT=30s
-SERVER_WRITE_TIMEOUT=30s
-
-# База данных
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=startup_scout
-DB_SSLMODE=disable
-
-
-# Аутентификация
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-YANDEX_CLIENT_ID=your_yandex_client_id
-YANDEX_CLIENT_SECRET=your_yandex_client_secret
-JWT_SECRET=your_jwt_secret
-SESSION_DURATION=24h
-
-# Логирование
-LOG_LEVEL=info
-```
-
 ## Структура проекта
 
 ```
@@ -124,6 +78,8 @@ startup-scout/
 ```
 
 ## Разработка
+
+Если хотите контрибьютить в проект, то пишите мне в тг: @khadzakos
 
 ### Добавление новых функций
 
