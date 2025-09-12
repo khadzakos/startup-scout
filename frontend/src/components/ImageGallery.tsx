@@ -6,13 +6,15 @@ interface ImageGalleryProps {
   className?: string;
   showThumbnails?: boolean;
   maxThumbnails?: number;
+  aspectRatio?: 'auto' | 'square' | 'video' | 'portrait' | 'landscape';
 }
 
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
   images,
   className = '',
   showThumbnails = true,
-  maxThumbnails = 4
+  maxThumbnails = 4,
+  aspectRatio = 'auto'
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -74,6 +76,22 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   const displayImages = showThumbnails ? images.slice(0, maxThumbnails) : images;
   const hasMoreImages = images.length > maxThumbnails;
 
+  // Функция для получения CSS классов в зависимости от соотношения сторон
+  const getAspectRatioClasses = () => {
+    switch (aspectRatio) {
+      case 'square':
+        return 'aspect-square';
+      case 'video':
+        return 'aspect-video';
+      case 'portrait':
+        return 'aspect-[3/4]';
+      case 'landscape':
+        return 'aspect-[4/3]';
+      default:
+        return 'max-h-96'; // auto - адаптируется под размер изображения
+    }
+  };
+
   return (
     <>
       <div 
@@ -82,11 +100,13 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
         tabIndex={0}
       >
         {/* Основное изображение */}
-        <div className="relative group">
+        <div className={`relative group ${getAspectRatioClasses()}`}>
           <img
             src={images[mainImageIndex]}
             alt="Main project image"
-            className="w-full h-64 md:h-80 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            className={`w-full h-full object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity bg-gray-100 ${
+              aspectRatio === 'auto' ? 'max-h-96' : ''
+            }`}
             onClick={() => openModal(images[mainImageIndex], mainImageIndex)}
           />
           
@@ -128,11 +148,9 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
         {showThumbnails && images.length > 1 && (
           <div className="grid grid-cols-4 gap-2">
             {displayImages.map((imageUrl, index) => (
-              <img
+              <div
                 key={index}
-                src={imageUrl}
-                alt={`Thumbnail ${index + 1}`}
-                className={`w-full h-16 object-cover rounded cursor-pointer transition-all ${
+                className={`relative aspect-square rounded cursor-pointer transition-all overflow-hidden ${
                   index === mainImageIndex 
                     ? 'ring-2 ring-blue-500 opacity-100' 
                     : 'hover:opacity-70 opacity-60'
@@ -141,11 +159,17 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
                   setMainImageIndex(index);
                   openModal(imageUrl, index);
                 }}
-              />
+              >
+                <img
+                  src={imageUrl}
+                  alt={`Thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             ))}
             {hasMoreImages && (
               <div
-                className="w-full h-16 bg-gray-200 rounded flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
+                className="aspect-square bg-gray-200 rounded flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors"
                 onClick={() => {
                   const nextIndex = maxThumbnails;
                   setMainImageIndex(nextIndex);
@@ -209,7 +233,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
             <img
               src={selectedImage}
               alt="Full size"
-              className="max-w-full max-h-full object-contain"
+              className="max-w-full max-h-[90vh] object-contain"
               onClick={(e) => e.stopPropagation()}
             />
 

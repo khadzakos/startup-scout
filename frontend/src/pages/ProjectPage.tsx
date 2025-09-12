@@ -101,9 +101,10 @@ export const ProjectPage: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Галерея</h3>
               <ImageGallery 
                 images={project.images} 
-                className="max-h-96"
+                className=""
                 showThumbnails={true}
                 maxThumbnails={4}
+                aspectRatio="auto"
               />
             </div>
           )}
