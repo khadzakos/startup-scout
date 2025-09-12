@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -87,16 +89,57 @@ func (h *Handlers) GetProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) CreateProject(w http.ResponseWriter, r *http.Request) {
-	var project entities.Project
-	if err := json.NewDecoder(r.Body).Decode(&project); err != nil {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("failed to read request body", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	h.logger.Info("received project creation request", 
+		zap.String("content_type", r.Header.Get("Content-Type")),
+		zap.String("body", string(bodyBytes)))
+
+	var requestData struct {
+		Name            string   `json:"name"`
+		Description     string   `json:"description"`
+		FullDescription string   `json:"full_description"`
+		Logo            *string  `json:"logo"`
+		Images          []string `json:"images"`
+		Creators        []string `json:"creators"`
+		TelegramContact string   `json:"telegram_contact"`
+		Website         string   `json:"website"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
+		h.logger.Error("failed to decode request body", zap.Error(err), zap.String("body", string(bodyBytes)))
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	h.logger.Info("successfully decoded project request", 
+		zap.String("name", requestData.Name),
+		zap.String("description", requestData.Description),
+		zap.String("telegram_contact", requestData.TelegramContact),
+		zap.String("website", requestData.Website),
+		zap.Strings("creators", requestData.Creators),
+		zap.Strings("images", requestData.Images))
+
 	// Получаем пользователя из контекста (после аутентификации)
 	userID := r.Context().Value("user_id").(uuid.UUID)
 
-	project.UserID = userID
+	// Создаем проект с правильными типами данных
+	project := entities.Project{
+		Name:            requestData.Name,
+		Description:     requestData.Description,
+		FullDescription: requestData.FullDescription,
+		Logo:            requestData.Logo,
+		Images:          entities.StringArray(requestData.Images),
+		Creators:        entities.StringArray(requestData.Creators),
+		TelegramContact: sql.NullString{String: requestData.TelegramContact, Valid: requestData.TelegramContact != ""},
+		Website:         sql.NullString{String: requestData.Website, Valid: requestData.Website != ""},
+		UserID:          userID,
+	}
 
 	if err := h.projectService.CreateProject(r.Context(), &project); err != nil {
 		h.logger.Error("failed to create project", zap.Error(err))
