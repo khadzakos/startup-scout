@@ -26,7 +26,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { token } = useAuth();
+  const { user } = useAuth();
 
   // Функция для извлечения имени файла из URL
   const getFileNameFromUrl = (url: string): string => {
@@ -59,7 +59,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   // Общая функция для обработки файлов (из input или drag&drop)
   const handleFiles = async (files: File[]) => {
-    if (!token) {
+    if (!user) {
       setError('Необходимо войти в систему для загрузки изображений');
       return;
     }
@@ -84,9 +84,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.IMAGE_UPLOAD}`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include', // важно для отправки cookies
           body: formData,
         });
 
